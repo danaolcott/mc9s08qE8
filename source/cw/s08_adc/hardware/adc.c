@@ -46,24 +46,23 @@
 
 /////////////////////////////////////////////////////
 //Configure ADC on channels 8 and 9, 12bit conversion
+//See Section 10 in the datasheet.
 // * ADP8 - PTA6 - Pin 22
 // * ADP9 - PTA7 - Pin 21
 //
 //
 void ADC_init(void)
-{
-	uint8_t low, high;
-	
+{	
 	//ADCSC1 - status and control register 1
 	ADCSC1_AIEN = 0x00;		//conversion complete interrupt disabled
 	ADCSC1_ADCO = 0x00;		//continuous conversion disabled
 	
 	//ADC channel bits - set to disable initially - 11111
-	ADCSC1_ADCH0 = 0x00;	//channel bit 0
-	ADCSC1_ADCH1 = 0x00;	//channel bit 1
-	ADCSC1_ADCH2 = 0x00;	//channel bit 2
-	ADCSC1_ADCH3 = 0x00;	//channel bit 3
-	ADCSC1_ADCH4 = 0x00;	//channel bit 4
+	ADCSC1_ADCH0 = 0x01;	//channel bit 0
+	ADCSC1_ADCH1 = 0x01;	//channel bit 1
+	ADCSC1_ADCH2 = 0x01;	//channel bit 2
+	ADCSC1_ADCH3 = 0x01;	//channel bit 3
+	ADCSC1_ADCH4 = 0x01;	//channel bit 4
 
 	//ADCSC2 - status and control register 2
 	ADCSC2_ADTRG = 0;		//software trigger
@@ -123,16 +122,75 @@ uint16_t ADC_read(ADC_Channel_t channel)
 		//set to default channel - ground
 		value |= ((uint8_t)ADC_CHANNEL_VSS);		
 
-	ADCSC1 = value;				//start the conversion - write to ADCSC1
-	while (!(ADCSC1_COCO)){};	//poll the conversion complete
+	ADCSC1 = value;					//start the conversion - write to ADCSC1
+	while (!(ADCSC1_COCO)){};		//poll the conversion complete
 
-	high = ADCRH;				//read high bits
-	low = ADCRL;				//read low bits
-	
-	result = (high << 8) | (low);
+	high = ADCRH;					//read high bits
+	low = ADCRL;					//read low bits	
+	result = (high << 8) | (low);	//result
 	
 	return result;
 }
+
+
+////////////////////////////////////////////////////
+//Returns the number of millivolts read on a channel
+//Read the high reference to compute the mv
+//
+uint16_t ADC_readMv(ADC_Channel_t channel)
+{
+	unsigned long raw = 0x00;
+	unsigned long mv = 0x00;
+	unsigned long vrefh = ADC_VREFH;
+	raw = ADC_read(channel);		//get raw reading	
+	mv = (raw * vrefh) / 0xFFF;		//compute mv
+	
+	return ((uint16_t)mv);
+}
+
+/////////////////////////////////////////////////////
+//Read the chip temp.  
+//Read the channel associated with the chip temp
+//compute the voltage and compare with T25
+//NOTE: scale everything into 1000's of mv
+
+//#define ADC_TEMP25_MV				701200
+//#define ADC_TEMP_SLOPE_UNDER25		1646		//1.646 - slope of the mV/C curve
+//#define ADC_TEMP_SLOPE_OVER25		1769		//1.769 - slope of the mV/C curve
+
+//result returned in 10th's of a deg, ie, 25.6 deg = 256
+int16_t ADC_readTemp(void)
+{
+	long raw = (long)ADC_readMv(ADC_CHANNEL_TEMP_SENSOR);
+	long slope = ADC_TEMP_SLOPE_UNDER25;
+	long temp = 0x00;
+	long cutoff = ADC_TEMP25_MV;
+	long tempF = 0x00;
+	
+	raw = raw * 1000;
+	
+	//set the appropriate slope
+	if (raw > cutoff)
+		slope = ADC_TEMP_SLOPE_OVER25;
+
+	//compute the temp - Eq 10.1 in the datasheet
+	//temp = 25 - ((Vtemp - Vtemp25) / m)
+	//temp = 25000 - (1000*(Vtemp - Vtemp25) / m)	
+	temp = 1000 * (raw - cutoff);
+	temp = temp / slope;
+	temp = 25000 - temp;
+	
+	//convert to deg F: F = C * 1.8 + 32		
+	temp = temp * 18;
+	temp = temp / 10;
+	temp = temp + 32000;
+	temp = temp / 100;
+
+	return ((int16_t)temp);
+
+}
+
+
 
 
 
@@ -150,16 +208,11 @@ uint8_t ADC_isValidChannel(ADC_Channel_t channel)
 		case ADC_CHANNEL_VREFH:			return 1;		break;
 		case ADC_CHANNEL_VREFL:			return 1;		break;
 		case ADC_CHANNEL_VSS:			return 1;		break;
-		default: 						return 0;		break;	
+		default: 						break;	
 	}
 	
 	return 0;
 }
-
-
-
-
-
 
 
 

@@ -59,13 +59,13 @@ unsigned char tx[3] = {0xAA, 0xBB, 0xCE};
 uint16_t result = 0x00;
 uint8_t high = 0x00;
 uint8_t low = 0x00;
-
+int16_t temperature = 0x00;
 
 void main(void) 
 {
 	DisableInterrupts;			//disable interrupts
 	System_init();				//configure system level config bits
-	RTC_init(RTC_FREQ_1000HZ);	//Timer
+	RTC_init(RTC_FREQ_100HZ);	//Timer
 	GPIO_init();				//IO
 	SPI_init();
 	ADC_init();
@@ -73,32 +73,33 @@ void main(void)
 	
 	while (1) 
 	{
-		//toggle the led
 		LED_Toggle_Red();
+
+		//read the temp
+		temperature = ADC_readTemp();
+		result = (uint16_t)temperature;
 		
-		//read a value
-		result = ADC_read(ADC_CHANNEL_8);
 		high = (result >> 8) & 0xFF;
 		low = result & 0xFF;
 
 		//output the result
 		SPI_write(high);
 		SPI_write(low);
-				
-		RTC_delay(500);		
+
+		RTC_delay(20);
 	}
 }
 
 
 ////////////////////////////////////////////
 //Configure system level registers - SOPT1 / SOPT2
-//These are write one-time registers.  Changing 
+//These are write one-time registers.  Changing
 //any bit a second time has no effect.
 //
 //SOPT1 - Disable the watchdog and enable PTA5 as reset
 void System_init(void)
 {
-	//SOPT1 Register - Default = 0xC2	
+	//SOPT1 Register - Default = 0xC2
 	//Bit7 - Watchdog Enable
 	//Bit0 - Enable PTA5 as reset
 	SOPT1 = 0x43;
@@ -119,8 +120,7 @@ void GPIO_init(void)
 	
 	PTCD &=~ BIT0;
 	PTCD &=~ BIT1;
-	
-	
+		
 	//////////////////////////////////////////////
 	//PA0 - input, falling edged trigger interrupt
 	//Registers:
