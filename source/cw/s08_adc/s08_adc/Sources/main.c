@@ -71,7 +71,7 @@ void main(void)
 	ADC_init();
 	EnableInterrupts;			//enable interrupts
 	
-	while (1) 
+	while (1)
 	{
 		LED_Toggle_Red();
 

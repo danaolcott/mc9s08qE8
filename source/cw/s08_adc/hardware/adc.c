@@ -165,7 +165,6 @@ int16_t ADC_readTemp(void)
 	long slope = ADC_TEMP_SLOPE_UNDER25;
 	long temp = 0x00;
 	long cutoff = ADC_TEMP25_MV;
-	long tempF = 0x00;
 	
 	raw = raw * 1000;
 	
@@ -187,11 +186,7 @@ int16_t ADC_readTemp(void)
 	temp = temp / 100;
 
 	return ((int16_t)temp);
-
 }
-
-
-
 
 
 ///////////////////////////////////////////////////
