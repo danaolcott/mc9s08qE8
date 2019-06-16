@@ -1,0 +1,79 @@
+installing usbdm is a bit of a pain.  All the packages that you have to 
+install seem to be out of date, not available, etc.
+
+Here's a gist of some of the packages you need to install:
+
+usbdm package - .deb file.  Trying to install this directory will 
+result in an error about missing package: libxerces-c3.1.
+On my system, I could install -c3.2 but not 3.1.  After some searching, 
+I found the following:
+ 
+libxerces-c3.1_3.1.4+debian-2_amd64.deb
+
+Trying to install this resulted in a different error:
+Missing package libicu_57.  I could find _60, but after installing
+that it still would not work.   After some more searching, I found
+ the following package:
+
+libicu57_57.1-5ubuntu0.2_amd64.deb
+
+
+With those downloaded and ready, installed the following order:
+
+sudo dpkg -i ~/Downloads/libicu57_51.1-5ubuntu0.2_amd64.deb
+sudo dpkg -i ~/Downloads/libxerces-c3.1_3.1.4+debian-2_amd64.deb
+
+Finally....
+sudo dpkg -i ~/Downloads/usbdm_4.12.1.210-1-x86_64.deb
+
+They really dont make it easy....
+
+
+The above steps should be able to install usbdm.  Thinking
+about it some more, one could have just installed usbdm by doing the
+sudo apt-change search.... etc.  
+////////////////////////////////////////////////////////
+//
+
+
+
+After installing usbdm....
+Run the following: /user/bin/UsbdmScript
+
+List the commands: ?
+
+% settarget HCS08
+USBDM DLL Version = 4.12.1.210
+BDM List:
+ 0 - USBDM-JS16-0001      : USBDM HCS08,HCS12,Coldfire-V1 BDM
+Found 1 devices
+:setTarget HCS08
+% connect
+USBDM device is not open
+% openbdm
+Opening USBDM-JS16-0001
+BDM Version = HW=8D, SW=4C
+
+% 
+
+//with the target now open....
+//set the target device
+//note: if you try to do this before connecting it usually crashes
+setdevice -list
+setdevice MC9S08QE8
+
+connect
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
