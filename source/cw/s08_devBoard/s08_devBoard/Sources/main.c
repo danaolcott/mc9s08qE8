@@ -36,9 +36,18 @@
 #include "adc.h"
 #include "uart.h"
 
+#define MAX_FLASH_ROUTINE		10
+
+
 //prototypes
 void System_init(void);
 void GPIO_init(void);
+
+void UpdateFlashRoutine(void);
+
+
+//globals
+volatile char flashRoutine = 0x00;
 
 void main(void)
 {
@@ -50,16 +59,12 @@ void main(void)
 	
 	while (1)
 	{
+		
+		//set the leds according to the flash routine
+		UpdateFlashRoutine();
 		//toggle leds
-		PTAD ^= (BIT2 | BIT3 | BIT6 | BIT7);
-		
-		//toggle port C
-		PTCD ^= 0xFF;
-		
-		//toggle Port B
-		PTBD ^= 0xFF;
-		
-		RTC_delay(200);
+				
+		RTC_delay(500);
 	}
 }
 
@@ -147,8 +152,47 @@ void interrupt VectorNumber_Vkeyboard kbi_isr(void)
 {
 	KBISC_KBACK = 1;	//clear the interrupt flag
 	
-	//do something	
+	//increment the flash routine
+	if (flashRoutine < MAX_FLASH_ROUTINE)
+		flashRoutine++;
+	else
+		flashRoutine = 0x00;
+		
 }
+
+
+
+/////////////////////////////////////////
+//Toggle leds based on the value of the
+//flashRoutine
+void UpdateFlashRoutine(void)
+{
+	switch(flashRoutine)
+	{
+		//flashing
+		case 0:	PTAD ^= (BIT2 | BIT3 | BIT6 | BIT7);	break;
+		case 1:	PTAD ^= (BIT2);							break;
+		case 2:	PTAD ^= (BIT3);							break;
+		case 3:	PTAD ^= (BIT6);							break;
+		case 4:	PTAD ^= (BIT7);							break;
+		case 5:	PTAD ^= (BIT2 | BIT3);					break;
+		case 6:	PTAD ^= (BIT6 | BIT7);					break;
+		case 7:	PTAD ^= (BIT2 | BIT7);					break;
+		case 8:	PTAD ^= (BIT3 | BIT6);					break;
+
+		//static
+		case 9:	PTAD |= (BIT2 | BIT3 | BIT6 | BIT7);	break;
+		case 10:	PTAD &=~(BIT2);						break;
+		case 11:	PTAD &=~(BIT3);						break;
+		case 12:	PTAD &=~(BIT6);						break;
+		case 13:	PTAD |= (BIT2);						break;
+		case 14:	PTAD &=~ (BIT7);					break;
+		case 15:	PTAD |= (BIT2 | BIT3 | BIT6 | BIT7);	break;
+		default:	PTAD ^= (BIT2 | BIT3 | BIT6 | BIT7);	break;		
+	}
+}
+
+
 
 
 
