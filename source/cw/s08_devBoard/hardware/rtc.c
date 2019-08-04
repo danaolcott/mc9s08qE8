@@ -22,25 +22,16 @@
 #include "rtc.h"
 
 //global time tick for delay function
-volatile unsigned int gTimeTick = 0x00;
+volatile unsigned long gTimeTick = 0x00;
 
-
-////////////////////////////////////////
+///////////////////////////////////////////
 //Configure the Real Time Counter module
-//Configure the module to timeout and generate
-//an interrupt at specified rate.  Uses the 
-//1khz low power clock as the source.  See 
-//Table 13-2 for prescale values.
-//RTCSC = 0x1 ....
-//	where .... are the prescale bits
-//	1hz  = 0x0F
-//	1khz = 0x08
-//  100hz = 0x0B
-//  10hz = 0x0D
+//This function sets up the RTC module to 
+//generate an interrupt at a desired RTC_Frequency_t
+//from 1hz to 1000hz.  The module is configured to 
+//use the 1khz internal low power clock source.
 //
-//RTCMOD - 0x00
-
-void RTC_init(RTC_Frequency_t freq)
+void RTC_init_internal(RTC_Frequency_t freq)
 {
 	//RTCSC - enable interrupt, use 1khz clock
 	unsigned char value = 0x10;
@@ -60,6 +51,41 @@ void RTC_init(RTC_Frequency_t freq)
 }
 
 
+///////////////////////////////////////////
+//RTC_init_external
+//Configure the RTC peripheral to trigger on 
+//the external clock source.  Input xtal rate 16mhz
+//and target interrupt rate is 8khz.
+//Registers:
+//RTCSC - interrupt, clocks...
+//RTCMOD - modulus - set interrupt freq.
+//RTCCNT - current count - read only
+//The following sets up an interrupt to trigger
+//at a rate of 8khz.  This is based on a 16mhz xtal
+//and external clock configured as shown in main.c
+void RTC_init_external(void)
+{
+	//RTCSC
+	RTCSC_RTIF = 1;		//clear any interrupts
+	RTCSC_RTCLKS1 = 0;	//01 - use external clock
+	RTCSC_RTCLKS0 = 1;	//01 - use external clock	
+	RTCSC_RTIE = 1;		//enable real time counter interrupt
+	
+	//RTC Divider Bits - Using 16mhz xtal
+	//See Table XX in the datasheet
+	//Divide = 8 results in about 16khz interrupt
+	//Divide = 9 results in about 8khz interrupt
+	//Divide = 10 results in about 3.2khz
+	//Divide = 11 results in about 1.6khz
+	//Divide = 12 results in about 800hz
+	
+	RTCSC_RTCPS3 = 1;
+	RTCSC_RTCPS2 = 0;
+	RTCSC_RTCPS1 = 0;
+	RTCSC_RTCPS0 = 1;	
+}
+
+
 
 
 /////////////////////////////////////////////
@@ -68,7 +94,7 @@ void RTC_init(RTC_Frequency_t freq)
 //
 void RTC_delay(unsigned int delay)
 {
-	volatile unsigned int temp = delay + gTimeTick;
+	volatile unsigned long temp = (delay << 3) + gTimeTick;
 	while (temp > gTimeTick){};	
 }
 
@@ -88,6 +114,8 @@ void interrupt VectorNumber_Vrtc rtc_isr(void)
 	gTimeTick++;			//increment the time tick
 
 	//do something...
+	PTAD ^= BIT7;
+	
 }
 
 

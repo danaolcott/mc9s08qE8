@@ -85,7 +85,7 @@ void SPI_tx(uint8_t data)
 	while(!SPIS_SPTEF){};	//wait while tx buffer is not empty
 	SPID = data;			//write data
 	while(!SPIS_SPTEF){};	//wait while tx buffer is not empty	
-	while(!SPIS_SPRF){};	//wait while the rx buffer is not full;	
+	while(!SPIS_SPRF){};	//wait while the rx buffer is not full;
 	temp = SPID;			//read the data register to clear the tx flag
 }
 

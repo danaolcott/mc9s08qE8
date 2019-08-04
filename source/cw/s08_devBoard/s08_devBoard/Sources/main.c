@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include "config.h"
 #include "rtc.h"
+#include "clock.h"
 #include "spi.h"
 #include "adc.h"
 #include "uart.h"
@@ -43,28 +44,27 @@
 void System_init(void);
 void GPIO_init(void);
 
-void UpdateFlashRoutine(void);
-
-
 //globals
 volatile char flashRoutine = 0x00;
+uint8_t tx[4] = {0xAA, 0xCC, 0xAA, 0xCC};
 
 void main(void)
 {
 	DisableInterrupts;			//disable interrupts
 	System_init();				//configure system level config bits
-	RTC_init(RTC_FREQ_1000HZ);	//Timer
+	Clock_init();				//configure clock for external
+//	RTC_init_internal(RTC_FREQ_1000HZ);	//Timer
+	RTC_init_external();		//configure as external	
 	GPIO_init();				//IO	
+	SPI_init();
+	
 	EnableInterrupts;			//enable interrupts
 	
 	while (1)
 	{
-		
-		//set the leds according to the flash routine
-		UpdateFlashRoutine();
-		//toggle leds
-				
-		RTC_delay(500);
+		PTAD ^= BIT2;			//toggle an led
+		SPI_writeArray(tx, 4);	//send something over SPI
+		RTC_delay(500);			//wait
 	}
 }
 
@@ -84,19 +84,13 @@ void System_init(void)
 }
 
 
+
 ////////////////////////////////////////
 //GPIO_init()
-//Configure all pins as output
-//PC0-PC7
-//PA4 and PA5 - Leave these alone - for debugging / reset
-//PA0 - PA3 - LEDs - Red, Green, Blue, Yellow
-//PA6 - PA7
-//PB0 - PB7
+//Configure leds as output and user button as input
+//
 void GPIO_init(void)
-{	
-	//PC0 - PC7
-	PTCDD = (BIT0 | BIT1 | BIT2 |  BIT3 | BIT4 | BIT5 | BIT6 | BIT7);	
-	
+{		
 	//Port A
 	PTADD &=~ BIT0;		//User Button
 	PTADD |= BIT1;
@@ -104,20 +98,7 @@ void GPIO_init(void)
 	PTADD |= BIT3;		//LED Green
 	PTADD |= BIT6;		//LED Blue
 	PTADD |= BIT7;		//LED Yellow
-	
-	//Port B - All unused
-	PTBDD = (BIT0 | BIT1 | BIT2 |  BIT3 | BIT4 | BIT5 | BIT6 | BIT7);
-	
-	//All output pins off
-	PTCD = 0x00;
-	PTBD = 0x00;
-
-	PTAD &=~ BIT1;
-	PTAD &=~ BIT2;
-	PTAD &=~ BIT3;
-	PTAD &=~ BIT6;
-	PTAD &=~ BIT7;
-
+		
 	//////////////////////////////////////////////
 	//PA0 - input, falling edged trigger interrupt
 	//Registers:
@@ -151,47 +132,10 @@ void GPIO_init(void)
 void interrupt VectorNumber_Vkeyboard kbi_isr(void)
 {
 	KBISC_KBACK = 1;	//clear the interrupt flag
-	
-	//increment the flash routine
-	if (flashRoutine < MAX_FLASH_ROUTINE)
-		flashRoutine++;
-	else
-		flashRoutine = 0x00;
-		
+
+	//do something	
+	PTAD ^= BIT6;
 }
-
-
-
-/////////////////////////////////////////
-//Toggle leds based on the value of the
-//flashRoutine
-void UpdateFlashRoutine(void)
-{
-	switch(flashRoutine)
-	{
-		//flashing
-		case 0:	PTAD ^= (BIT2 | BIT3 | BIT6 | BIT7);	break;
-		case 1:	PTAD ^= (BIT2);							break;
-		case 2:	PTAD ^= (BIT3);							break;
-		case 3:	PTAD ^= (BIT6);							break;
-		case 4:	PTAD ^= (BIT7);							break;
-		case 5:	PTAD ^= (BIT2 | BIT3);					break;
-		case 6:	PTAD ^= (BIT6 | BIT7);					break;
-		case 7:	PTAD ^= (BIT2 | BIT7);					break;
-		case 8:	PTAD ^= (BIT3 | BIT6);					break;
-
-		//static
-		case 9:	PTAD |= (BIT2 | BIT3 | BIT6 | BIT7);	break;
-		case 10:	PTAD &=~(BIT2);						break;
-		case 11:	PTAD &=~(BIT3);						break;
-		case 12:	PTAD &=~(BIT6);						break;
-		case 13:	PTAD |= (BIT2);						break;
-		case 14:	PTAD &=~ (BIT7);					break;
-		case 15:	PTAD |= (BIT2 | BIT3 | BIT6 | BIT7);	break;
-		default:	PTAD ^= (BIT2 | BIT3 | BIT6 | BIT7);	break;		
-	}
-}
-
 
 
 
