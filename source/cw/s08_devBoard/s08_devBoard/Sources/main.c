@@ -5,13 +5,9 @@
  * 
  * The purpose of this project is to test the pins on the 
  * MC9S08QE8 Development Board from Dana's Boatshop.com.
- * The project will run in several different configurations
- * each used to test the pins for a different peripheral.
  * 
- * Pins:
- * PC0 - PC7 - Not Used
+ * The board uses the following pinout:
  * 
- * PA4 and PA5 - Leave these alone - for debugging / reset 
  * PA0 - User Button
  * PA1 - Not Used
  * PA2 - Red
@@ -20,9 +16,10 @@
  * PA7 - Yellow
  * 
  * PB0 - PB7 - Not used
+ * PC0 - PC7 - Not Used
+ * 
  *  
  */
-
 
 #include <hidef.h> /* for EnableInterrupts macro */
 #include "derivative.h" /* include peripheral declarations */
