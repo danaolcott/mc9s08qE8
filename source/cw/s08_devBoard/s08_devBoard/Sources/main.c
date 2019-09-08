@@ -15,8 +15,10 @@
  * PA6 - Blue
  * PA7 - Yellow
  * 
- * PB0 - PB7 - Not used
+ * PB0 - PB5 - Not used
  * PC0 - PC7 - Not Used
+ * 
+ * PB6 and PB7 - External oscillator / not used
  * 
  *  
  */
