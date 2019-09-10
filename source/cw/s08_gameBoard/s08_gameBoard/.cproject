@@ -56,8 +56,9 @@
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/Sources&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../hardware&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../display&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${ProjDirPath}/../game&quot;"/>
 								</option>
-								<option id="hc08.toolchain.compiler.treeOpt.tree.646888948" superClass="hc08.toolchain.compiler.treeOpt.tree" value="true" valueType="boolean"/>
+								<option id="hc08.toolchain.compiler.treeOpt.tree.646888948" name="Disable all optimizations (-Ont)" superClass="hc08.toolchain.compiler.treeOpt.tree" value="true" valueType="boolean"/>
 								<inputType id="hcs08.toolchain.compiler.base.input.c.1392758490" name="HCS08 Compiler C Input" superClass="hcs08.toolchain.compiler.base.input.c"/>
 								<inputType id="hcs08.toolchain.compiler.base.input.cpp.419306834" name="HCS08 Compiler CPP Input" superClass="hcs08.toolchain.compiler.base.input.cpp"/>
 							</tool>

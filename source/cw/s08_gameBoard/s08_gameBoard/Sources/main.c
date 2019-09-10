@@ -49,9 +49,9 @@
 #include "derivative.h" /* include peripheral declarations */
 
 #include "mc9s08qe8.h"
-#include <stddef.h>
-#include <string.h>
-#include <stdio.h>
+//#include <stddef.h>
+//#include <string.h>
+//#include <stdio.h>
 #include "config.h"
 #include "rtc.h"
 #include "clock.h"
@@ -60,6 +60,7 @@
 #include "adc.h"
 #include "pwm.h"
 #include "lcd.h"
+#include "game.h"
 
 //prototypes
 void System_init(void);
@@ -98,20 +99,35 @@ void main(void)
 	PWM_init(100);				//PWM output on PC0
 	SPI_init();					//configure the SPI
 	LCD_init();					//configure the LCD
-	
-	EnableInterrupts;			//enable interrupts
 
 	//set up the LCD
 	LCD_clear(0x00);
 	LCD_clearBackground(0xAA);
 	
-	LCD_drawLine(0,0, FRAME_BUFFER_WIDTH - 1, FRAME_BUFFER_HEIGHT - 1, 1);
-	LCD_drawLine(FRAME_BUFFER_WIDTH - 1, 0, 0, FRAME_BUFFER_HEIGHT - 1, 1);
-		
+	Game_init();	
+	Game_enemyDraw();
+	
+	//consider disable interrupts for this as it
+	//seems to crash drawing the enemy on the screen
+	//ie, if you have them enabled, it will only draw
+	//3 or 4 images.
+	//or look into burst writes.
+	//or try to slow down the interrupt speed
+	//maybe both
+	//
+	//TODO: burst data writes and slow down the
+	//interrupt speed on the RTC.
+	//
+	LCD_updateFrameBuffer();
+	
+	EnableInterrupts;			//enable interrupts
+
+
+	
+	
 	
 	while (1)
 	{
-
 		//draw the player moving left and right
 		LCD_clearPlayerPage(0x00);
 		LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER);
@@ -126,8 +142,7 @@ void main(void)
 			{
 				movingRight = 0;
 				LCD_clearScorePage(0x00);
-				n = sprintf(buffer, (char *far)"Moving Left");
-				LCD_drawStringLength(0, 0, buffer, (uint8_t)n);
+				LCD_drawString(0, 0, "Moving Left");
 				
 				//draw exploding
 				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP1);
@@ -148,9 +163,8 @@ void main(void)
 			{
 				movingRight = 1;
 				LCD_clearScorePage(0x00);
-				n = sprintf(buffer, (char *far)"Moving Right");
-				LCD_drawStringLength(0, 0, buffer, (uint8_t)n);
-				
+				LCD_drawString(0, 0, "Moving Right");
+
 				//draw exploding
 				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP1);
 				RTC_delay(100);		
@@ -164,41 +178,7 @@ void main(void)
 		}
 
 		RTC_delay(100);
-
-			
 		
-		
-
-		
-/*		
-		//draw string - cast to far ptr
-		LCD_drawString(0, 0, "Introduction");
-
-		
-		//print something
-		n = sprintf(buffer, (char *far)"Hello");
-		LCD_drawStringLength(5, 0, buffer, n);
-		
-		n = sprintf(printBuffer, (char *far)"World");
-		LCD_drawStringLength(6, 0, printBuffer, n);
-		
-//		uint8_t LCD_decimalToBuffer(unsigned int val, char far* buffer, uint8_t size)
-		n = LCD_decimalToBuffer(counter++, buffer, 10);	//this works
-		LCD_drawStringLength(7, 0, buffer, n);		//this works
-		
-		
-		
-//		LCD_clearFrameBuffer(counter);
-
-		
-		
-		GPIO_toggleGreen();
-		RTC_delay(500);			//wait
-		
-		LCD_clearScorePage(0);
-		GPIO_toggleGreen();
-		RTC_delay(500);			//wait
-*/
 
 	}
 }

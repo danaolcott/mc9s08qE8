@@ -29,6 +29,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/display</locationURI>
 		</link>
 		<link>
+			<name>Sources/game</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/game</locationURI>
+		</link>
+		<link>
 			<name>Sources/hardware</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/hardware</locationURI>

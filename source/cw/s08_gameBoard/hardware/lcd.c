@@ -24,7 +24,7 @@
 /////////////////////////////////////////////////////
 //Framebuffer allocated to memory location 0x100
 volatile uint8_t frameBuffer[FRAME_BUFFER_SIZE] @ 0x100u;
-volatile uint8_t printBuffer[PRINT_BUFFER_SIZE] @ 0x240u;		//right after framebuffer
+//volatile uint8_t printBuffer[PRINT_BUFFER_SIZE] @ 0x240u;		//right after framebuffer
 
 
 
@@ -185,7 +185,9 @@ void LCD_clear(uint8_t value)
 //Clears the framebuffer memory and updates
 //the contents of the display within the 
 //framebuffer region only
-void LCD_clearFrameBuffer(uint8_t value)
+//if update == 1, update the frame buffer with
+//contents of the display
+void LCD_clearFrameBuffer(uint8_t value, uint8_t update)
 {
 	uint8_t i, j;
 	uint16_t index = 0x00;
@@ -193,18 +195,22 @@ void LCD_clearFrameBuffer(uint8_t value)
 	for (index = 0 ; index < FRAME_BUFFER_SIZE ; index++)
 		frameBuffer[index] = value;
 	
-	index = 0x00;
-	
-	LCD_setColumn(FRAME_BUFFER_OFFSET_X);
-	LCD_setPage(FRAME_BUFFER_START_PAGE);
-	
-	for (i = FRAME_BUFFER_START_PAGE ; i < FRAME_BUFFER_STOP_PAGE + 1 ; i++)
+	//update the contents of the display
+	if (update == 1)
 	{
-		LCD_setColumn(FRAME_BUFFER_OFFSET_X);	//reset the x
-		LCD_setPage(i);							//increment the page
+		index = 0x00;
 		
-		for (j = 0 ; j < FRAME_BUFFER_WIDTH ; j++)
-			LCD_writeData(frameBuffer[index++]);
+		LCD_setColumn(FRAME_BUFFER_OFFSET_X);
+		LCD_setPage(FRAME_BUFFER_START_PAGE);
+		
+		for (i = FRAME_BUFFER_START_PAGE ; i < FRAME_BUFFER_STOP_PAGE + 1 ; i++)
+		{
+			LCD_setColumn(FRAME_BUFFER_OFFSET_X);	//reset the x
+			LCD_setPage(i);							//increment the page
+			
+			for (j = 0 ; j < FRAME_BUFFER_WIDTH ; j++)
+				LCD_writeData(frameBuffer[index++]);
+		}
 	}
 }
 
@@ -271,8 +277,22 @@ void LCD_clearBackground(uint8_t value)
 //
 void LCD_updateFrameBuffer(void)
 {
-	
+	uint8_t i, j;
+	uint16_t element = 0;
+
+	for (i = FRAME_BUFFER_START_PAGE ; i < FRAME_BUFFER_STOP_PAGE + 1 ; i++)
+	{
+		LCD_setColumn(FRAME_BUFFER_OFFSET_X);
+		LCD_setPage(i);
+
+		for (j = 0 ; j < FRAME_BUFFER_WIDTH ; j++)
+		{
+			LCD_writeData(frameBuffer[element]);
+			element++;
+		}
+	}
 }
+
 
 ////////////////////////////////////////////
 //Draws one character at row and col from
@@ -385,41 +405,6 @@ void LCD_drawStringLength(uint8_t row, uint8_t col, char *far mystring, uint8_t 
 	}
 }
 
-////////////////////////////////////////////////////////
-//Writes the contents of the printBuffer to the LCD
-//It seems the near and far keywords are messing with 
-//the fact that it's defined at a specific address
-void LCD_printBufferLength(uint8_t row, uint8_t col, uint8_t length)
-{
-	unsigned int i, j = 0;
-	unsigned char position = col;
-	uint8_t width = 8;
-	unsigned int value0 = 0;
-	unsigned int line = 0;
-	
-	//set the x and y start positions
-	LCD_setPage(row);
-
-
-	for (i = 0 ; i < length ; i++)
-	{
-		LCD_setColumn(position);
-
-		if ((position + width) < LCD_WIDTH)
-		{
-			line = printBuffer[i] - 27;		//ie, for char 32 " ", it's on line 5
-			value0 = (line-1) << 3;
-
-			for (j = 0 ; j < width ; j++)
-			{
-				LCD_writeData(font_table[value0 + j]);
-			}
-		}
-
-		position += width;
-	}	
-}
-
 
 
 //////////////////////////////////////////
@@ -523,46 +508,46 @@ void LCD_drawImagePage(uint8_t page, uint8_t offset, Image_t image)
 //
 void LCD_putPixelRam(uint16_t x, uint16_t y, uint8_t color, uint8_t update)
 {
-    uint16_t element = 0x00;    //frame buffer element
-    uint8_t elementValue = 0x00;    
-    uint8_t bitShift = 0x00;
-    
-    //test for valid input
-    if ((x > (FRAME_BUFFER_WIDTH - 1)) || (y > (FRAME_BUFFER_HEIGHT - 1)))
-        return;
+	uint16_t element = 0x00;    //frame buffer element
+	uint8_t elementValue = 0x00;    
+	uint8_t bitShift = 0x00;
 
-    //element the frame buffer to read / write
-    element = ((y >> 3) * FRAME_BUFFER_WIDTH) + x;
-    
-    //offset - MSB on bottom
-    if (y < 8)
-        bitShift = (uint8_t)y;
-    else if ((y % 8) == 0)
-        bitShift = 0;
-    else
-        bitShift = y % 8;
-    
-    //read
-    elementValue = frameBuffer[element];
-    
-    //modify
-    if (color == 1)
-        elementValue |= (1 << bitShift);        //add 1
-    else    
-        elementValue &=~ (1 << bitShift);       //clear 1
-     
+    //test for valid input
+	if ((x > (FRAME_BUFFER_WIDTH - 1)) || (y > (FRAME_BUFFER_HEIGHT - 1)))
+		return;
+	
+	//element the frame buffer to read / write
+	element = ((y >> 3) * FRAME_BUFFER_WIDTH) + x;
+	
+	//offset - MSB on bottom
+	if (y < 8)
+		bitShift = (uint8_t)y;
+	else if ((y % 8) == 0)
+		bitShift = 0;
+	else
+		bitShift = y % 8;
+	
+	//read
+	elementValue = frameBuffer[element];
+	
+	//modify
+	if (color == 1)
+		elementValue |= (1 << bitShift);        //add 1
+	else    
+		elementValue &=~ (1 << bitShift);       //clear 1
+	
     //write
     frameBuffer[element] = elementValue;
-
-    //update
-    if (update > 0)
-    {
-        //update the display - offset by position
-    	//of the framebuffer
-        LCD_setColumn(x + FRAME_BUFFER_OFFSET_X);
-        LCD_setPage((y >> 3) + FRAME_BUFFER_START_PAGE);
-        LCD_writeData(elementValue);
-    }	
+	
+	//update
+	if (update > 0)
+	{
+		//update the display - offset by position
+		//of the framebuffer
+		LCD_setColumn(x + FRAME_BUFFER_OFFSET_X);
+		LCD_setPage((y >> 3) + FRAME_BUFFER_START_PAGE);
+		LCD_writeData(elementValue);
+	}	
 }
 
 
@@ -570,19 +555,19 @@ void LCD_putPixelRam(uint16_t x, uint16_t y, uint8_t color, uint8_t update)
 ///////////////////////////////////////////////////////////////
 void LCD_drawLine(int x0, int y0, int x1, int y1, uint8_t color)
 {
-    int dx = abs(x1-x0), sx = x0<x1 ? 1 : -1;
-    int dy = abs(y1-y0), sy = y0<y1 ? 1 : -1;
-    int err = (dx>dy ? dx : -dy)/2, e2;
-
-    for(;;)
-    {
-        //update the display
-    	LCD_putPixelRam(x0,y0, color, 1);
-        if (x0==x1 && y0==y1) break;
-        e2 = err;
-        if (e2 >-dx) { err -= dy; x0 += sx; }
-        if (e2 < dy) { err += dx; y0 += sy; }
-    }   
+	int dx = abs(x1-x0), sx = x0<x1 ? 1 : -1;
+	int dy = abs(y1-y0), sy = y0<y1 ? 1 : -1;
+	int err = (dx>dy ? dx : -dy)/2, e2;
+	
+	for(;;)
+	{
+		//update the display
+		LCD_putPixelRam(x0,y0, color, 1);
+		if (x0==x1 && y0==y1) break;
+		e2 = err;
+		if (e2 >-dx) { err -= dy; x0 += sx; }
+		if (e2 < dy) { err += dx; y0 += sy; }
+	}   
 }
 
 
@@ -596,13 +581,90 @@ void LCD_drawLine(int x0, int y0, int x1, int y1, uint8_t color)
 //Input images are assumed to be stored as arrays that
 //are horizontally aligned, 1 bit per pixel, 8 pixels per
 //byte, MSB to LSB.
+//
+//trans - bit value to ignore.  ie, if trans = 0, ignore and
+//skip over 0 pixels (ie, does not clear the pixel), if trans = 1,
+//ignore and skip over 1 pixels (ie, don't draw on pixels).
+
+//if update = 1, the LCD is updated with the contents of the
+//framebuffer.
+//
 //Note:  This is opposite to drawing images directly into
-//the LCD.  The framebuffer stores the data verically
+//the LCD.  The framebuffer stores the data vertically
 //to allow for faster writes.  The conversion is done
 //in the put pixel function
-void LCD_drawImageRam(uint8_t x, uint8_t y, Image_t image)
+void LCD_drawImageRam(uint16_t xPosition, uint16_t yPosition, Image_t image, uint8_t trans, uint8_t update)
 {
+	uint8_t bitValue = 0;
+	uint8_t p = 0;
+	uint16_t i = 0;
+	uint16_t j = 0;
+	uint16_t counter = 0x00;
+	uint8_t data = 0x00;
+	uint8_t sizeX = 0x00;
+	uint8_t sizeY = 0x00;    
+	uint16_t x = xPosition;
+	uint16_t y = yPosition;
+	 
+	//set the pointer
+	uint8_t *far ptr = bmenemy1Bmp.pImageData;
+	sizeX = bmenemy1Bmp.xSize;
+	sizeY = bmenemy1Bmp.ySize;
 	
+	//set the image data pointer
+    switch(image)
+    {
+		case BITMAP_ENEMY:
+		{
+			ptr = bmenemy1Bmp.pImageData;
+			sizeX = bmenemy1Bmp.xSize;
+			sizeY = bmenemy1Bmp.ySize;
+			break;
+		}
+		
+		default:
+		{
+			ptr = bmenemy1Bmp.pImageData;
+			sizeX = bmenemy1Bmp.xSize;
+			sizeY = bmenemy1Bmp.ySize;
+		}
+    }
+         
+    for (i = 0 ; i < sizeY ; i++)
+    {
+		x = xPosition;        //reset the x position
+		
+		//1bpp - 8 pixels per element
+		for (j = 0 ; j < (sizeX / 8) ; j++)
+		{   
+			data = ptr[counter];
+			
+			//work counter 8 times
+			p = 8;                  //reset p
+			while (p > 0)
+			{                
+				bitValue = (data >> (p-1)) & 0x01;
+				
+				if (bitValue != trans)
+				{
+					if (!bitValue)
+						LCD_putPixelRam(x, y, 0, update);
+					else
+						LCD_putPixelRam(x, y, 1, update);
+				}
+				
+				x++;            //increment the x
+				p--;
+			}
+			
+			counter++;
+		}
+		
+		y++;        //increment the row
+	}
 }
+
+
+
 
 

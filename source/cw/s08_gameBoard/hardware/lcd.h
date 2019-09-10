@@ -62,7 +62,7 @@
 #define LCD_SCORE_PAGE				0
 
 #define PRINT_BUFFER_SIZE		16
-extern volatile uint8_t printBuffer[PRINT_BUFFER_SIZE] @ 0x240u;		//right after framebuffer
+//extern volatile uint8_t printBuffer[PRINT_BUFFER_SIZE] @ 0x240u;		//right after framebuffer
 
 
 //prototypes
@@ -79,7 +79,7 @@ void LCD_setPage(uint8_t page);
 void LCD_setColumn(uint8_t column);
 
 void LCD_clear(uint8_t value);
-void LCD_clearFrameBuffer(uint8_t value);
+void LCD_clearFrameBuffer(uint8_t value, uint8_t update);
 void LCD_clearPlayerPage(uint8_t value);
 void LCD_clearScorePage(uint8_t value);
 void LCD_clearBackground(uint8_t value);
@@ -88,7 +88,6 @@ void LCD_updateFrameBuffer(void);
 void LCD_drawChar(uint8_t row, uint8_t col, uint8_t letter);
 void LCD_drawString(uint8_t row, uint8_t col, char *far myString);
 void LCD_drawStringLength(uint8_t row, uint8_t col, char *far mystring, uint8_t length);
-void LCD_printBufferLength(uint8_t row, uint8_t col, uint8_t length);
 
 uint8_t LCD_decimalToBuffer(unsigned int val, char far* buffer, uint8_t size);
 
@@ -98,9 +97,9 @@ void LCD_drawImagePage(uint8_t x, uint8_t y, Image_t image);
 void LCD_putPixelRam(uint16_t x, uint16_t y, uint8_t color, uint8_t update);
 void LCD_drawLine(int x0, int y0, int x1, int y1, uint8_t color);
 
-void LCD_drawImageRam(uint16_t x, uint16_t y, Image_t image);
+void LCD_drawImageRam(uint16_t xPosition, uint16_t yPosition, Image_t image, uint8_t trans, uint8_t update);
 
-
+//void LCD_drawImageRam(uint16_t far xPosition, uint16_t far yPosition, Image_t far image, uint8_t far trans, uint8_t far update);
 
 
 #endif /* LCD_H_ */
