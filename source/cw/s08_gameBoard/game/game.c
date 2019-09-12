@@ -30,21 +30,15 @@
 //no static far  - puts the array into common
 //no static no far - puts it in common
 
-//static PlayerStruct mPlayer = {0x00};
-static PlayerStruct far mPlayer;
+
+static PlayerStruct mPlayer = {0x00};
 
 //EnemyStruct mEnemy[GAME_ENEMY_NUM_ENEMY];		//0x84 - common
 //EnemyStruct far mEnemy[GAME_ENEMY_NUM_ENEMY];		//0x84 - common
 //static EnemyStruct far mEnemy[GAME_ENEMY_NUM_ENEMY];		//0x6C - bss
 //static EnemyStruct mEnemy[GAME_ENEMY_NUM_ENEMY];		//0x6C - bss
 
-static EnemyStruct far mEnemy[GAME_ENEMY_NUM_ENEMY];		//0x6C - bss
-
-
-//flags - ememy movement flag
-//bit0 - H - right/left - 0 = right, 1 = left
-//bit 1 - V - down/up - 0 = down, 1 = up
-//static uint8_t mFlag_enemyDirection_VH = 0x00;
+static EnemyStruct mEnemy[GAME_ENEMY_NUM_ENEMY] = {0x00};		//0x6C - bss
 
 
 
@@ -76,16 +70,12 @@ void Game_enemyInit(void)
 {
 	uint16_t i, j = 0;
 	uint8_t index = 0;
-	
-//	mFlag_enemyDirection_VH = 0x00;			//moving right and down
-
-	
 
 	for (i = 0 ; i < GAME_ENEMY_NUM_ROWS ; i++)
 	{
 		for (j = 0 ; j < GAME_ENEMY_NUM_COLS ; j++)
 		{
-			mEnemy[index].alive = 1;
+			mEnemy[index].flag_VHL = 0x07;			//down, right, alive
 			mEnemy[index].xPosition = (uint8_t)(GAME_ENEMY_X_SPACING * j);
 			mEnemy[index].yPosition = (uint8_t)(GAME_ENEMY_Y_SPACING * i);
 
@@ -96,7 +86,6 @@ void Game_enemyInit(void)
 }
 
 
-/*
 ///////////////////////////////////////////////
 //Move enemies left and right, up and down
 //
@@ -108,17 +97,23 @@ void Game_enemyMove(void)
 	//sizes
 	uint8_t sizeX = bmenemy1Bmp.xSize;
 	uint8_t sizeY = bmenemy1Bmp.ySize;
-				
+
 	//direction flags
-	uint8_t left = mFlag_enemyDirection_VH & 0x01;		//left = 1, right = 0
-	uint8_t up = (mFlag_enemyDirection_VH >> 1) & 0x01;	//up = 1, down = 0
+	uint8_t right = 0x00;
+	uint8_t down = 0x00;
+	uint8_t alive = 0x00;
 	
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
+		//get flags
+		alive = mEnemy[i].flag_VHL & 0x01;
+		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
+		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
+
 		//moving right
-		if (!left)
+		if (right == 1)
 		{
-			if (((mEnemy[i].xPosition + sizeX) < GAME_ENEMY_MAX_X) && (mEnemy[i].alive == 1))
+			if (((mEnemy[i].xPosition + sizeX) < GAME_ENEMY_MAX_X) && (alive == 1))
 				mEnemy[i].xPosition += 2;
 
 		}
@@ -126,7 +121,7 @@ void Game_enemyMove(void)
 		//moving left
 		else
 		{
-			if ((mEnemy[i].xPosition > GAME_ENEMY_MIN_X) && (mEnemy[i].alive == 1))
+			if ((mEnemy[i].xPosition > GAME_ENEMY_MIN_X) && (alive == 1))
 				mEnemy[i].xPosition -= 2;
 		}
 	}
@@ -135,7 +130,12 @@ void Game_enemyMove(void)
 	flag = 0x00;	
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
-		if (((mEnemy[i].xPosition + sizeX) >= GAME_ENEMY_MAX_X) && (mEnemy[i].alive == 1))
+		//get flags
+		alive = mEnemy[i].flag_VHL & 0x01;
+		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
+		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
+		
+		if (((mEnemy[i].xPosition + sizeX) >= GAME_ENEMY_MAX_X) && (alive == 1))
 		{
 			flag = 1;
 			i = GAME_ENEMY_NUM_ENEMY;
@@ -144,13 +144,26 @@ void Game_enemyMove(void)
 	}
 	
 	if (flag == 1)
-		mFlag_enemyDirection_VH |= 0x01;		//switch bit 0 high for left
+	{
+		//change the direction bit for each enemy - clear it for left
+		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
+		{
+			mEnemy[i].flag_VHL &=~ BIT1;
+		}
+		
+	}
+
 	
 	//direction change - right
 	flag = 0x00;	
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
-		if ((mEnemy[i].xPosition <= GAME_ENEMY_MIN_X) && (mEnemy[i].alive == 1))
+		//read the flags
+		alive = mEnemy[i].flag_VHL & 0x01;
+		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
+		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
+		
+		if ((mEnemy[i].xPosition <= GAME_ENEMY_MIN_X) && (alive == 1))
 		{
 			flag = 1;
 			i = GAME_ENEMY_NUM_ENEMY;
@@ -160,15 +173,88 @@ void Game_enemyMove(void)
 	
 	if (flag == 1)
 	{
-		mFlag_enemyDirection_VH &=~ 0x01;		//switch bit 0 low for right
+		//flip direction to right
+		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
+		{
+			mEnemy[i].flag_VHL |= BIT1;			//set direction right
 
-		//all the code that moves the enemy down and up goes here
+			alive = mEnemy[i].flag_VHL & 0x01;
+			right = (mEnemy[i].flag_VHL & 0x02) >> 1;
+			down = (mEnemy[i].flag_VHL & 0x04) >> 2;
+
+			//enemy are moving down
+			if (down == 1)
+			{
+				//move down
+				if(((mEnemy[i].yPosition + sizeY) < GAME_ENEMY_MAX_Y) && (alive == 1))
+					mEnemy[i].yPosition++;
+			}
+			
+			//enemy are moving up
+			else
+			{
+				if((mEnemy[i].yPosition > GAME_ENEMY_MIN_Y) && (alive == 1))
+					mEnemy[i].yPosition--;
+			}
+		}
 	}
-		
 	
-}
+	//check for direction change up
+	flag = 0;
+	
+	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
+	{
+		//read the flags
+		alive = mEnemy[i].flag_VHL & 0x01;
+		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
+		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
 
-*/
+		if(((mEnemy[i].yPosition + sizeY) >= GAME_ENEMY_MAX_Y) && (alive == 1))
+		{
+			flag = 1;
+			i = GAME_ENEMY_NUM_ENEMY;
+			break;
+		}
+	}
+	
+	//set the direction to up
+	if (flag == 1)
+	{
+		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
+		{
+			mEnemy[i].flag_VHL &=~ BIT2;		//clear Vertical bit
+			mEnemy[i].yPosition -= 1;			//move up
+		}
+	}
+	
+	
+	//check for direction change down
+	flag = 0;
+	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
+	{
+		//read the flags
+		alive = mEnemy[i].flag_VHL & 0x01;
+		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
+		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
+
+		if((mEnemy[i].yPosition <= GAME_ENEMY_MIN_Y) && (alive == 1))
+		{
+			flag = 1;
+			i = GAME_ENEMY_NUM_ENEMY;
+			break;
+		}
+	}
+	
+	//set the direction to down
+	if (flag == 1)
+	{
+		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
+		{
+			mEnemy[i].flag_VHL |= BIT2;		//set Vertical bit
+			mEnemy[i].yPosition += 1;		//move down
+		}
+	}
+}
 
 
 //////////////////////////////////////////
@@ -190,7 +276,7 @@ void Game_enemyDraw(void)
 	
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
-		if (mEnemy[i].alive == 1)
+		if ((mEnemy[i].flag_VHL) & 0x01)
 		{			
 			LCD_drawImageRam(mEnemy[i].xPosition, mEnemy[i].yPosition, BITMAP_ENEMY, 0, 0);
 		}

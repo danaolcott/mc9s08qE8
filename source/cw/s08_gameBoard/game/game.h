@@ -33,7 +33,7 @@
 #define GAME_ENEMY_MIN_X			0
 #define GAME_ENEMY_MAX_X			64
 #define GAME_ENEMY_MIN_Y			0
-#define GAME_ENEMY_MAX_Y			30
+#define GAME_ENEMY_MAX_Y			40
 
 
 
@@ -48,8 +48,12 @@ typedef struct{
 
 ////////////////////////////////////////
 //Enemy Definition
+//flag_VHL - bits containing the direction and life
+//of the enemy.  V - vertical, high = down
+//H = horizontal, high = right, L = life, high = alive
+//
 typedef struct{
-	uint8_t alive;		//alive or not
+	uint8_t flag_VHL;		//Vertical - down, Horiz - left, Life - alive
 	uint8_t xPosition;
 	uint8_t yPosition;	
 }EnemyStruct;
@@ -64,7 +68,7 @@ void Game_init(void);
 void Game_playerInit(void);
 void Game_enemyInit(void);
 
-//void Game_enemyMove(void);
+void Game_enemyMove(void);
 
 void Game_playerDraw(void);
 void Game_enemyDraw(void);

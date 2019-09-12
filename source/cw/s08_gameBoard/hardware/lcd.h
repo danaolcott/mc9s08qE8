@@ -70,6 +70,7 @@ void LCD_dummyDelay(unsigned long delay);
 void LCD_reset(void);
 void LCD_writeCommand(uint8_t cmd);
 void LCD_writeData(uint8_t data);
+void LCD_writeDataBurst(uint8_t *far data, uint16_t length);
 
 void LCD_init(void);
 void LCD_on(void);

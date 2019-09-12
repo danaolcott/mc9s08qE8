@@ -57,10 +57,11 @@ void SPI_init(void)
 	//SPIBR - Configure the baud rate - Tables 15-4 and 15-5
 	//For now, assume prescale = 2, rate divider = 2
 	//Top bits = 0001 (Note: Bit 7 not used, set as 0)
+
 	SPIBR_SPPR2 = 0x00;
 	SPIBR_SPPR1 = 0x00;
 	SPIBR_SPPR0 = 0x01;
-		
+	
 	//Lower bits = 0000 - missing bit 3 from header
 	SPIBR_SPR2 = 0x00;
 	SPIBR_SPR1 = 0x00;
@@ -128,7 +129,7 @@ uint8_t SPI_read(void)
 	return result;
 }
 
-void SPI_writeArray(uint8_t* data, uint16_t length)
+void SPI_writeArray(uint8_t *far data, uint16_t length)
 {
 	uint16_t i = 0x00;
 	SPI_select();

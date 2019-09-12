@@ -22,7 +22,7 @@ uint8_t SPI_rx(void);
 
 void SPI_write(uint8_t data);
 uint8_t SPI_read(void);
-void SPI_writeArray(uint8_t* data, uint16_t length);
+void SPI_writeArray(uint8_t *far data, uint16_t length);
 void SPI_readArray(uint8_t* data, uint16_t length);
 
 #endif /* SPI_H_ */

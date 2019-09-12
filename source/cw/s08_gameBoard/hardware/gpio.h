@@ -16,6 +16,8 @@
 
 void GPIO_init(void);
 void GPIO_toggleRed(void);
+void GPIO_setRed(void);
+void GPIO_clearRed(void);
 void GPIO_toggleGreen(void);
 
 #endif /* GPIO_H_ */

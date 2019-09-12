@@ -73,6 +73,17 @@ void GPIO_toggleRed(void)
 	PTAD ^= BIT7;			//toggle an led	
 }
 
+void GPIO_setRed(void)
+{
+	PTAD |= BIT7;	
+}
+
+void GPIO_clearRed(void)
+{
+	PTAD &=~ BIT7;	
+}
+
+
 
 //////////////////////////////////////////
 //Toggle green LED

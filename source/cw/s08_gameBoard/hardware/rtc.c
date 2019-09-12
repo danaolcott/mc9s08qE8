@@ -99,7 +99,7 @@ void RTC_init_external(void)
 //
 void RTC_delay(unsigned int delay)
 {
-	volatile unsigned long temp = (delay << 3) + gTimeTick;
+	volatile unsigned long temp = delay + gTimeTick;
 	while (temp > gTimeTick){};	
 }
 

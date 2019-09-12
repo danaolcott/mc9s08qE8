@@ -93,7 +93,10 @@ void main(void)
 	DisableInterrupts;			//disable interrupts
 	System_init();				//configure system level config bits
 	Clock_init();				//configure clock for external
-	RTC_init_external();		//configure as external	
+	//RTC_init_external();		//configure as external - 8khz
+
+	RTC_init_internal(RTC_FREQ_1000HZ);
+	
 	GPIO_init();				//IO
 	ADC_init();					//ADC Channel 1 - temp sensor
 	PWM_init(100);				//PWM output on PC0
@@ -128,6 +131,25 @@ void main(void)
 	
 	while (1)
 	{
+		//NOTE: drawing the framebuffer with interrupts
+		//enabled does not work.
+		
+//		Game_enemyMove();
+		
+		
+		
+		DisableInterrupts;
+		LCD_clearFrameBuffer(0, 0);
+		Game_enemyMove();
+		Game_enemyDraw();					//draws into draw, no update
+		LCD_updateFrameBuffer();
+		EnableInterrupts;
+		
+		
+
+
+			
+		
 		//draw the player moving left and right
 		LCD_clearPlayerPage(0x00);
 		LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER);
@@ -177,6 +199,8 @@ void main(void)
 			}
 		}
 
+
+		
 		RTC_delay(100);
 		
 
