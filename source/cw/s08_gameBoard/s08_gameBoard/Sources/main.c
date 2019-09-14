@@ -93,8 +93,6 @@ void main(void)
 	DisableInterrupts;			//disable interrupts
 	System_init();				//configure system level config bits
 	Clock_init();				//configure clock for external
-	//RTC_init_external();		//configure as external - 8khz
-
 	RTC_init_internal(RTC_FREQ_1000HZ);
 	
 	GPIO_init();				//IO
@@ -104,24 +102,10 @@ void main(void)
 	LCD_init();					//configure the LCD
 
 	//set up the LCD
-	LCD_clear(0x00);
-	LCD_clearBackground(0xAA);
+	LCD_clear(0x00);			//clear screen
+	LCD_clearBackground(0xAA);	//margins
 	
-	Game_init();	
-	Game_enemyDraw();
-	
-	//consider disable interrupts for this as it
-	//seems to crash drawing the enemy on the screen
-	//ie, if you have them enabled, it will only draw
-	//3 or 4 images.
-	//or look into burst writes.
-	//or try to slow down the interrupt speed
-	//maybe both
-	//
-	//TODO: burst data writes and slow down the
-	//interrupt speed on the RTC.
-	//
-	LCD_updateFrameBuffer();
+	Game_init();				//initialize the game
 	
 	EnableInterrupts;			//enable interrupts
 
@@ -130,80 +114,67 @@ void main(void)
 	
 	
 	while (1)
-	{
-		//NOTE: drawing the framebuffer with interrupts
-		//enabled does not work.
+	{	
+		//check flag missile launch
+		if (!(counter % 10))
+		{
+			Game_missileEnemyLaunch();
+		}
 		
-//		Game_enemyMove();
+		//check flag enemy hit
+		
+		//check flag player hit
+		if (Game_flagGetPlayerHitFlag() == GAME_FLAG_PLAYER_HIT)
+		{
+			Game_flagClearPlayerHitFlag();
+//			DisableInterrupts;
+//			Game_playExplosionPlayer();	
+//			EnableInterrupts;
+		}
+		
+		//TODO: update left and right buttons as polling
+		
+		//left and right buttons - dont
+		
+		//check flag button press - move left
+		if (Game_flagGetButtonPress() == BUTTON_LEFT)
+		{
+			Game_flagClearButtonPress(BUTTON_LEFT);
+			Game_playerMoveLeft();
+		}
+
+		//check flag button press - move right
+		if (Game_flagGetButtonPress() == BUTTON_RIGHT)
+		{
+			Game_flagClearButtonPress(BUTTON_RIGHT);
+			Game_playerMoveRight();
+		}
+		
+		//check flag button press - fire
+		if (Game_flagGetButtonPress() == BUTTON_FIRE)
+		{
+			Game_flagClearButtonPress(BUTTON_FIRE);
+//			Game_missilePlayerLaunch();
+		}
 		
 		
 		
-		DisableInterrupts;
-		LCD_clearFrameBuffer(0, 0);
-		Game_enemyMove();
-		Game_enemyDraw();					//draws into draw, no update
-		LCD_updateFrameBuffer();
+//		Game_playerMoveDemo();					//player flag
+		Game_enemyMove();					//move enemy
+		Game_missileMove();					//move all missiles
+
+		DisableInterrupts;					//stop the timer
+		LCD_clearFrameBuffer(0, 0);			//clear the ram buffer
+		Game_playerDraw();					//update player image
+		Game_enemyDraw();					//draw enemy
+		Game_missileDraw();					//draw missiles
+		LCD_updateFrameBuffer();			//update the display
 		EnableInterrupts;
-		
-		
 
-
-			
-		
-		//draw the player moving left and right
-		LCD_clearPlayerPage(0x00);
-		LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER);
+		counter++;
 		GPIO_toggleGreen();
-			
-		//move player
-		if (movingRight == 1)
-		{
-			if (playerPosition < (LCD_WIDTH - bmimgPlayerInvBmp.xSize - 10))
-				playerPosition+=2;
-			else
-			{
-				movingRight = 0;
-				LCD_clearScorePage(0x00);
-				LCD_drawString(0, 0, "Moving Left");
-				
-				//draw exploding
-				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP1);
-				RTC_delay(100);		
-				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP2);
-				RTC_delay(100);		
-				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP3);
-				RTC_delay(100);		
-				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP4);
-				RTC_delay(100);
-			}
-		}
-		else
-		{
-			if (playerPosition > 10)
-				playerPosition-=2;
-			else
-			{
-				movingRight = 1;
-				LCD_clearScorePage(0x00);
-				LCD_drawString(0, 0, "Moving Right");
-
-				//draw exploding
-				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP1);
-				RTC_delay(100);		
-				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP2);
-				RTC_delay(100);		
-				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP3);
-				RTC_delay(100);		
-				LCD_drawImagePage(LCD_PLAYER_PAGE, playerPosition, BITMAP_PLAYER_EXP4);
-				RTC_delay(100);
-			}
-		}
-
-
-		
 		RTC_delay(100);
 		
-
 	}
 }
 

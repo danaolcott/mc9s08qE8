@@ -15,7 +15,7 @@
 #include "config.h"
 #include "gpio.h"
 #include "pwm.h"
-
+#include "game.h"		//button press flags
 ////////////////////////////////////////
 //GPIO_init()
 //Configure the red and green leds on PA6 and PA7
@@ -68,18 +68,15 @@ void GPIO_init(void)
 
 ////////////////////////////////////////
 //Toggle red LED
-void GPIO_toggleRed(void)
-{
-	PTAD ^= BIT7;			//toggle an led	
+void GPIO_toggleRed(void){
+	PTAD ^= BIT7;	
 }
 
-void GPIO_setRed(void)
-{
+void GPIO_setRed(void){
 	PTAD |= BIT7;	
 }
 
-void GPIO_clearRed(void)
-{
+void GPIO_clearRed(void){
 	PTAD &=~ BIT7;	
 }
 
@@ -87,9 +84,16 @@ void GPIO_clearRed(void)
 
 //////////////////////////////////////////
 //Toggle green LED
-void GPIO_toggleGreen(void)
-{
-	PTAD ^= BIT6;			//toggle an led
+void GPIO_toggleGreen(void){
+	PTAD ^= BIT6;
+}
+
+void GPIO_setGreen(void){
+	PTAD |= BIT6;
+}
+
+void GPIO_clearGreen(void){
+	PTAD &=~ BIT6;
 }
 
  
@@ -98,6 +102,8 @@ void GPIO_toggleGreen(void)
 //Keyboard Pin ISR
 //see mc9s08qe8.h
 //vector 18, maps to address: 0xFFDA
+//
+//PA0 and PB0 - change these to polling
 void interrupt VectorNumber_Vkeyboard kbi_isr(void)
 {
 	KBISC_KBACK = 1;	//clear the interrupt flag
@@ -105,18 +111,22 @@ void interrupt VectorNumber_Vkeyboard kbi_isr(void)
 	//Check which pin generated the interrupt
 	//toggle red, green, or both
 	//PA0
+	//left
 	if (!(PTAD & BIT0))
 	{
-		GPIO_toggleRed();
+		Game_flagSetButtonPress(BUTTON_LEFT);
 	}
+	
+	//middle
 	else if (!(PTBD & BIT0))
 	{
-		GPIO_toggleGreen();
+		Game_flagSetButtonPress(BUTTON_RIGHT);
 	}
+
+	//right
 	else if (!(PTBD & BIT1))
 	{
-		GPIO_toggleRed();
-		GPIO_toggleGreen();	
+		Game_flagSetButtonPress(BUTTON_FIRE);
 	}
 }
 

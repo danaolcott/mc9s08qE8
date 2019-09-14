@@ -290,34 +290,14 @@ void LCD_updateFrameBuffer(void)
 	uint16_t element = 0;
 	
 	volatile uint8_t *far ptr = frameBuffer;
-	
-	//set the red led high
-	GPIO_setRed();
-	
+		
 	for (i = FRAME_BUFFER_START_PAGE ; i < FRAME_BUFFER_STOP_PAGE + 1 ; i++)
 	{
 		LCD_setColumn(FRAME_BUFFER_OFFSET_X);
 		LCD_setPage(i);
-		
-
-		//option 1 - write each data byte separately
-		//takes about 8ms to update the LCD with
-		//contents of framebuffer
-//		for (j = 0 ; j < FRAME_BUFFER_WIDTH ; j++)
-//		{
-//			LCD_writeData(frameBuffer[element]);
-//			element++;
-//		}
-		
-		//option 2 - burst writes
-		//takes about 5ms
 		LCD_writeDataBurst((uint8_t *far)ptr, FRAME_BUFFER_WIDTH);		
 		ptr += FRAME_BUFFER_WIDTH;
-	}
-	
-	GPIO_clearRed();
-
-	
+	}	
 }
 
 

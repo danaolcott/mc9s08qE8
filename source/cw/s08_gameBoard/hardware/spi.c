@@ -28,7 +28,7 @@
 //speed does not double the rate.
 //
 void SPI_init(void)
-{	
+{
 	//Configure the IO for SPI	
 	PTBDD |= BIT5;			//SS pin as output
 	PTBD |= BIT5;			//SS initially high

@@ -12,10 +12,13 @@
 #include <hidef.h> /* for EnableInterrupts macro */
 #include "derivative.h" /* include peripheral declarations */
 #include "mc9s08qe8.h"
+#include <stdlib.h>
 #include "config.h"
 #include "game.h"
 #include "lcd.h"
 #include "bitmap.h"
+#include "gpio.h"
+#include "rtc.h"		//delay
 
 //Game objects
 //Note: Enemy array should be declared as static or 
@@ -41,11 +44,30 @@ static PlayerStruct mPlayer = {0x00};
 static EnemyStruct mEnemy[GAME_ENEMY_NUM_ENEMY] = {0x00};		//0x6C - bss
 
 
+//Missile arrays, assume the player and the enemy each get 4
+static MissileStruct mPlayerMissile[GAME_MISSILE_NUM_MISSILE] = {0x00};
+static MissileStruct mEnemyMissile[GAME_MISSILE_NUM_MISSILE] = {0x00};
+
+
+//flags
+static uint8_t mButtonFlag = 0x00;
+static uint8_t mPlayerFlag = 0x00;
+
+/////////////////////////////////////////
+//No interrupt delay function
+void Game_dummyDelay(unsigned int time)
+{
+	volatile unsigned int temp = time;
+	
+	while (temp > 0)
+		temp--;
+}
 
 void Game_init(void)
 {
 	Game_playerInit();
 	Game_enemyInit();
+	Game_missileInit();
 	
 	Game_playerDraw();
 	Game_enemyDraw();
@@ -82,7 +104,68 @@ void Game_enemyInit(void)
 			index++;
 		}
 	}
+}
+
+
+///////////////////////////////////////////////
+//Missile_init
+void Game_missileInit(void)
+{
+	uint8_t i = 0;
 	
+	for (i = 0 ; i < GAME_MISSILE_NUM_MISSILE ; i++)
+	{
+		mEnemyMissile[i].alive = 0;
+		mEnemyMissile[i].x = 0x00;
+		mEnemyMissile[i].y = 0x00;
+		
+		mPlayerMissile[i].alive = 0x00;
+		mPlayerMissile[i].x = 0x00;
+		mPlayerMissile[i].y = 0x00;
+	}
+}
+
+
+void Game_playerMoveLeft(void)
+{
+	if (mPlayer.xPosition > GAME_PLAYER_MIN_X)
+		mPlayer.xPosition--;	
+}
+
+void Game_playerMoveRight(void)
+{
+	if (mPlayer.xPosition < GAME_PLAYER_MAX_X)
+		mPlayer.xPosition++;	
+}
+
+
+///////////////////////////////////////////////
+//Game_playerMove
+//For now, just move the player left and right
+void Game_playerMoveDemo(void)
+{
+	static uint8_t moveRight = 1;
+	
+	if (moveRight == 1)
+	{
+		if (mPlayer.xPosition < GAME_PLAYER_MAX_X)
+			mPlayer.xPosition++;
+		else
+		{
+			moveRight = 0;
+			mPlayer.xPosition--;
+		}
+	}
+	else
+	{
+		if (mPlayer.xPosition > GAME_PLAYER_MIN_X)
+			mPlayer.xPosition--;
+		else
+		{
+			moveRight = 1;
+			mPlayer.xPosition++;
+		}		
+	}
 }
 
 
@@ -149,10 +232,8 @@ void Game_enemyMove(void)
 		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 		{
 			mEnemy[i].flag_VHL &=~ BIT1;
-		}
-		
+		}		
 	}
-
 	
 	//direction change - right
 	flag = 0x00;	
@@ -257,11 +338,125 @@ void Game_enemyMove(void)
 }
 
 
+
+
+/////////////////////////////////////////////////
+//Game_missileMove()
+//
+//Update the position of the missiles.  Enemy
+//missiles move down and player missiles move up
+void Game_missileMove(void)
+{
+	uint8_t i, j = 0;
+	uint8_t mX, mY, bot, top, left, right = 0x00;
+	uint8_t numEnemyRemaining = 0x00;
+	uint8_t numPlayerRemaining = 0x00;
+	
+		
+	for (i = 0 ; i < GAME_MISSILE_NUM_MISSILE ; i++)
+	{
+		//player missile - moving up
+		if ((mPlayerMissile[i].y > GAME_MISSILE_MIN_Y) && (mPlayerMissile[i].alive == 1))
+			mPlayerMissile[i].y-=2;
+		else
+		{
+			//remove it from the alive list
+			mPlayerMissile[i].alive = 0;
+			mPlayerMissile[i].x = 0;
+			mPlayerMissile[i].y = 0;
+		}
+		
+		//check for player missile hit enemy
+		if (mPlayerMissile[i].alive == 1)
+		{
+			//loop over each enemy, did the missile hit it
+			for (j = 0 ; j < GAME_ENEMY_NUM_ENEMY ; j++)
+			{
+				//alive?
+				if ((mEnemy[j].flag_VHL & 0x01))
+				{
+					//get the coordinates of the missile and
+					//box that outlines the enemy
+					mX = mPlayerMissile[i].x;
+					mY = mPlayerMissile[i].y;
+					
+					bot = mEnemy[j].yPosition + GAME_ENEMY_HEIGHT;
+					top = mEnemy[j].yPosition;
+					left = mEnemy[j].xPosition + GAME_IMAGE_MARGIN;
+					right = mEnemy[j].xPosition + GAME_ENEMY_WIDTH - GAME_IMAGE_MARGIN;
+					
+                    //tip of the missile in the enemy box?
+                    if ((mX >= left) && (mX <= right) && (mY <= bot) && (mY >= top))
+                    {
+                        //score hit!! - pass enemy index and missile index
+                    	//numEnemyRemaining = 0x00;
+                    	numEnemyRemaining = Game_scoreEnemyHit(j, i);
+                    	
+                    	if (numEnemyRemaining == 0)
+                    	{
+                    		//reset the enemy
+                    		Game_levelUp();
+                    	}
+                    }
+				}
+			}
+		}
+				
+		//enemy missile - moving down
+		if ((mEnemyMissile[i].y < GAME_MISSILE_MAX_Y) && (mEnemyMissile[i].alive == 1))
+			mEnemyMissile[i].y+=2;
+		else
+		{
+			mEnemyMissile[i].alive = 0;
+			mEnemyMissile[i].x = 0;
+			mEnemyMissile[i].y = 0;
+		}
+		
+		//check for enemy missile hitting player
+		if (mEnemyMissile[i].alive == 1)
+		{
+			//get the location of the missile and 
+			//compare with the player location.  since the
+			//player is outside the framebuffer, it uses x only
+			//in the player footprint
+			mX = mEnemyMissile[i].x;
+			mY = mEnemyMissile[i].y;
+
+			left = mPlayer.xPosition - FRAME_BUFFER_OFFSET_X + GAME_IMAGE_MARGIN;
+			right = mPlayer.xPosition + GAME_PLAYER_WIDTH - FRAME_BUFFER_OFFSET_X - GAME_IMAGE_MARGIN;
+
+			top = GAME_MISSILE_MAX_Y - 2;
+			bot = GAME_MISSILE_MAX_Y;
+
+            //tip of the missile in the player box?
+            if ((mX >= left) && (mX <= right) && (mY <= bot) && (mY >= top))
+            {
+            	//score player hit
+            	numPlayerRemaining = Game_scorePlayerHit(i);
+            	
+            	//set a flag
+            	mPlayerFlag |= GAME_FLAG_PLAYER_HIT;
+            	
+            	//last player??
+            	if (numPlayerRemaining == 0)
+            	{
+            		Game_init();
+            	}
+            }
+		}
+	}
+}
+
+
+
+
 //////////////////////////////////////////
 //Draw player on the player page
 //updates the contents of the display
 void Game_playerDraw(void)
 {
+	LCD_clearPlayerPage(0x00);
+	
 	if (mPlayer.numLives > 0)
 		LCD_drawImagePage(GAME_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER);
 }
@@ -273,7 +468,6 @@ void Game_playerDraw(void)
 void Game_enemyDraw(void)
 {
 	uint8_t i = 0;
-	
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
 		if ((mEnemy[i].flag_VHL) & 0x01)
@@ -284,6 +478,308 @@ void Game_enemyDraw(void)
 }
 
 
+//////////////////////////////////////////////////
+//Draw missile objects for all missiles
+//that are alive.  Applies to be the player
+//array of missiles and the enemy array of missiles
+//Missiles are a blob of pixels, no image is associated
+//with the missile
+void Game_missileDraw(void)
+{
+	uint8_t i = 0;
+	
+	for (i = 0 ; i < GAME_MISSILE_NUM_MISSILE ; i++)
+	{
+		//player missile
+		if (mPlayerMissile[i].alive == 1)
+		{
+			LCD_putPixelRam(mPlayerMissile[i].x, mPlayerMissile[i].y, 1, 0);
+			LCD_putPixelRam(mPlayerMissile[i].x, mPlayerMissile[i].y - 1, 1, 0);
+			
+			LCD_putPixelRam(mPlayerMissile[i].x + 1, mPlayerMissile[i].y, 1, 0);
+			LCD_putPixelRam(mPlayerMissile[i].x + 1, mPlayerMissile[i].y - 1, 1, 0);
+		}
+		
+		//enemy missile
+		if (mEnemyMissile[i].alive == 1)
+		{
+			LCD_putPixelRam(mEnemyMissile[i].x, mEnemyMissile[i].y, 1, 0);
+			LCD_putPixelRam(mEnemyMissile[i].x, mEnemyMissile[i].y + 1, 1, 0);
+			
+			LCD_putPixelRam(mEnemyMissile[i].x + 1, mEnemyMissile[i].y, 1, 0);
+			LCD_putPixelRam(mEnemyMissile[i].x + 1, mEnemyMissile[i].y + 1, 1, 0);
+		}
+	}	
+}
+
+
+//////////////////////////////////////////
+//Get first missile from array with alive = 0,
+//set alive = 1, and x = player x, and y = player y
+void Game_missilePlayerLaunch(void)
+{
+	uint8_t i = 0;
+	uint8_t index = 0;
+	uint8_t isAvailable = 0x00;
+	
+	//get the index of the first missile with alive = 0
+	for (i = 0 ; i < GAME_MISSILE_NUM_MISSILE ; i++)
+	{
+		if (mPlayerMissile[i].alive == 0)
+		{
+			isAvailable = 1;
+			index = i;
+			i = GAME_MISSILE_NUM_MISSILE;
+			break;
+		}		
+	}
+
+	if (isAvailable == 1)
+	{
+		//set the missile
+		mPlayerMissile[index].alive = 1;
+		mPlayerMissile[index].y = GAME_MISSILE_MAX_Y - 2;
+		mPlayerMissile[index].x = mPlayer.xPosition + GAME_MISSILE_OFFSET_X - FRAME_BUFFER_OFFSET_X;		
+	}
+}
+
+
+
+///////////////////////////////////////////
+//Launch missile from a random enemy
+void Game_missileEnemyLaunch(void)
+{
+	uint8_t i = 0;
+	int index = 0x00;
+	uint8_t missileIndex = 0x00;
+	uint8_t isAvailable = 0x00;
+	
+	index = Game_enemyGetRandomEnemy();
+	
+	if (index >= 0)
+	{
+		//find the first available missile from enemy
+		//missile array and set it to true, x and y
+		//to the enemy
+		for (i = 0 ; i < GAME_MISSILE_NUM_MISSILE ; i++)
+		{
+			if (mEnemyMissile[i].alive == 0)
+			{
+				isAvailable = 1;				//there is one available
+				missileIndex = i;
+				i = GAME_MISSILE_NUM_MISSILE;
+				break;
+			}
+		}
+		
+		if (isAvailable == 1)
+		{
+			//launch
+			mEnemyMissile[missileIndex].alive = 1;
+			mEnemyMissile[missileIndex].x = mEnemy[index].xPosition + GAME_ENEMY_OFFSET_X;
+			mEnemyMissile[missileIndex].y = mEnemy[index].yPosition + GAME_ENEMY_HEIGHT;
+		}		
+	}
+}
+
+
+///////////////////////////////////////////
+//Returns number of enemy with flag alive = 1
+uint8_t Game_enemyGetNumEnemy(void)
+{
+	uint8_t i = 0;
+	uint8_t count = 0;
+	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
+	{
+		if ((mEnemy[i].flag_VHL & 0x01) == 1)
+			count++;
+	}
+	
+	return count;
+}
+
+
+//////////////////////////////////////////
+//Return the index of a random live enemy
+int Game_enemyGetRandomEnemy(void)
+{
+	uint8_t i = 0;
+	uint8_t index = 0;
+	uint8_t counter = 0x00;
+	uint8_t numEnemy = Game_enemyGetNumEnemy();
+
+	if (numEnemy > 0)
+	{
+		//get a random index value, zero-based
+		//of the enemy to shoot the missile
+		index = (uint8_t)(rand() % numEnemy);
+		
+		//count "index number of values" down the array
+		//increment on only alive enemy
+
+		//go to the random index, skipping over dead enemy
+		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
+		{
+			if (((mEnemy[i].flag_VHL & 0x01)) == 1)
+			{
+				if (index == counter)
+					return counter;
+				
+				counter++;
+			}
+		}
+	}
+	
+	return -1;		//no enemy remaining
+}
+
+
+
+///////////////////////////////////////////////////
+//Missile hit enemy.  Return number of enemy
+//remaining.  Remove the enemny as alive and
+//missile as alive.  Update the player score
+uint8_t Game_scoreEnemyHit(uint8_t enemyIndex, uint8_t missileIndex)
+{
+	uint8_t remaining = 0x0;
+	
+	//clear the index of the enemy
+	mEnemy[enemyIndex].flag_VHL = 0x00;
+	mEnemy[enemyIndex].xPosition = 0x00;
+	mEnemy[enemyIndex].yPosition = 0x00;
+	
+	//clear the missile from the player
+	mPlayerMissile[missileIndex].alive = 0;
+	mPlayerMissile[missileIndex].x = 0x00;
+	mPlayerMissile[missileIndex].y = 0x00;
+
+	remaining = Game_enemyGetNumEnemy();
+	
+	return remaining;
+}
+
+
+/////////////////////////////////////////////
+//Enemy missile hit the player
+//returns the number of players remaining
+uint8_t Game_scorePlayerHit(uint8_t missileIndex)
+{
+	mEnemyMissile[missileIndex].alive = 0x00;
+	mEnemyMissile[missileIndex].x = 0x00;
+	mEnemyMissile[missileIndex].y = 0x00;
+	
+	GPIO_setRed();
+	Game_dummyDelay(8000);
+	GPIO_clearRed();
+		
+	if (mPlayer.numLives > 1)
+		mPlayer.numLives--;		
+	
+	else
+		mPlayer.numLives = 0;
+	
+	return mPlayer.numLives;
+	
+	
+}
+
+
+/////////////////////////////////////////
+//Cleared the enemy array
+//update the game level, reset the enemy arrays
+//and missile arrays
+void Game_levelUp(void)
+{
+	Game_enemyInit();
+	Game_missileInit();
+}
+
+
+
+////////////////////////////////////////////
+//Flags - Bit level flags for memory saving
+//mPlayerFlag - hit = bit 0
+uint8_t Game_flagGetPlayerHitFlag(void)
+{
+	return (mPlayerFlag & GAME_FLAG_PLAYER_HIT);
+}
+
+
+////////////////////////////////////////////
+void Game_flagClearPlayerHitFlag(void)
+{
+	mPlayerFlag &=~ GAME_FLAG_PLAYER_HIT;
+}
+
+
+/////////////////////////////////////////////
+//Flags - Button Flag - Bits 2, 1, 0
+//Button left, right, fire.  Called from the 
+//button press ISR
+void Game_flagSetButtonPress(ButtonType_t button)
+{
+	switch(button)
+	{
+		case BUTTON_LEFT: 	mButtonFlag |= BIT2;	break;
+		case BUTTON_RIGHT: 	mButtonFlag |= BIT1;	break;
+		case BUTTON_FIRE: 	mButtonFlag |= BIT0;	break;
+		case BUTTON_NONE:							break;
+		default:									break;
+	}
+}
+
+
+////////////////////////////////////////////
+//Returns the first bit high on mButtonFlag
+ButtonType_t Game_flagGetButtonPress(void)
+{
+	if (mButtonFlag & BIT2)
+		return BUTTON_LEFT;
+	else if (mButtonFlag & BIT1)
+		return BUTTON_RIGHT;
+	else if (mButtonFlag & BIT0)
+		return BUTTON_FIRE;
+	else
+		return BUTTON_NONE;
+}
+
+
+//////////////////////////////////////////////
+void Game_flagClearButtonPress(ButtonType_t button)
+{
+	switch(button)
+	{
+		case BUTTON_LEFT: 	mButtonFlag &=~ BIT2;	break;
+		case BUTTON_RIGHT: 	mButtonFlag &=~ BIT1;	break;
+		case BUTTON_FIRE: 	mButtonFlag &=~ BIT0;	break;
+		case BUTTON_NONE:							break;
+		default:									break;
+	}	
+}
+
+
+//////////////////////////////////////////////
+//Draw player ship explosion with delay
+//player explodes.  Should remove all missiles
+//in the buffer so you can't see them hanging
+//
+void Game_playExplosionPlayer(void)
+{
+	Game_missileInit();	
+	LCD_clearFrameBuffer(0x00, 0);
+	Game_enemyDraw();	
+	Game_missileDraw();	
+	LCD_updateFrameBuffer();
+	
+	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP1);
+	Game_dummyDelay(10000);
+	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP2);
+	Game_dummyDelay(10000);
+	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP3);
+	Game_dummyDelay(10000);
+	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP4);
+	Game_dummyDelay(10000);	
+}
 
 
 
