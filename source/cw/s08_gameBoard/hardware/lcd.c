@@ -26,8 +26,6 @@
 /////////////////////////////////////////////////////
 //Framebuffer allocated to memory location 0x100
 volatile uint8_t frameBuffer[FRAME_BUFFER_SIZE] @ 0x100u;
-//volatile uint8_t printBuffer[PRINT_BUFFER_SIZE] @ 0x240u;		//right after framebuffer
-
 
 
 ////////////////////////////////////////////////
@@ -425,6 +423,14 @@ uint8_t LCD_decimalToBuffer(unsigned int val, char far* buffer, uint8_t size)
     char digit;
     uint8_t num = 0;
     char t;
+    
+    //test for a zero value
+    if (val == 0)
+    {
+    	buffer[0] = '0';
+    	buffer[1] = 0x00;
+    	return 1;
+    }
 
     while (val > 0)
     {
@@ -497,13 +503,8 @@ void LCD_drawImagePage(uint8_t page, uint8_t offset, Image_t image)
 			LCD_writeData(ptr->pImageData[element]);
 			element++;
 		}
-	}
-	
+	}	
 }
-
-
-
-
 
 /////////////////////////////////////////////////////////
 //LCD_putPixelRam

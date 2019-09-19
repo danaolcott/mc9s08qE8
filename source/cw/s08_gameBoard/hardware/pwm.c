@@ -23,8 +23,6 @@
 #include "pwm.h"
 
 
-unsigned long mPWMFrequency = 0x00;
-
 //////////////////////////////////////////////////
 //Configure PWM output on PC0
 //See Section 16.1 in the datasheet
@@ -36,12 +34,7 @@ void PWM_init(unsigned long freq)
 {
 	unsigned long reloadValue = 0x00;
 	
-	if ((freq > PWM_MAX_FREQ) || (freq < PWM_MIN_FREQ))
-		mPWMFrequency = PWM_DEFAULT_FREQ;
-	else
-		mPWMFrequency = freq;
-	
-	reloadValue = (1000000 / (2*mPWMFrequency)) - 1;
+	reloadValue = (1000000 / (2*freq)) - 1;
 	
 	//TPM1SC - status and control register
 	TPM1SC_TOIE = 0;		//no interrupt
@@ -103,14 +96,8 @@ void PWM_setFrequency(unsigned long freq)
 	
 	//disable interrupts
 	DisableInterrupts;
-	
-	
-	if ((freq < PWM_MIN_FREQ) || (freq > PWM_MAX_FREQ))
-		mPWMFrequency = PWM_DEFAULT_FREQ;
-	else
-		mPWMFrequency = freq;
 
-	reloadValue = (1000000 / (2*mPWMFrequency)) - 1;
+	reloadValue = (1000000 / (2*freq)) - 1;
 
 	//reset the counter
 //	TPM1CNTH = 0;
@@ -129,64 +116,22 @@ void PWM_setFrequency(unsigned long freq)
 }
 
 
-/////////////////////////////////////////////
-//PWM_getFrequency
-unsigned long PWM_getFrequency(void)
+//////////////////////////////////
+//Enable the PWM output
+void PWM_on(void)
 {
-	return mPWMFrequency;
+	//clock source
+	TPM1SC_CLKSB = 0;		//clk source - 01 - bus clock
+	TPM1SC_CLKSA = 1;		//clk source - 01 - bus clock
 }
 
-
-
-//////////////////////////////////////////////
-//PWM_toggleFrequency
-//Switches frequency from 1000hz to 2000hz
-void PWM_toggleFrequency(void)
+void PWM_off(void)
 {
-	if (mPWMFrequency == 2000)
-	{
-		mPWMFrequency = 1000;
-		PWM_setFrequency(mPWMFrequency);
-	}
-	else
-	{
-		mPWMFrequency = 2000;
-		PWM_setFrequency(mPWMFrequency);	
-	}
+	//clock source
+	TPM1SC_CLKSB = 0;		//clk source - 00 - none
+	TPM1SC_CLKSA = 0;		//clk source - 00 - none
 }
 
-/////////////////////////////////////////////
-//Increment the frequency by PWM_FREQ_INCREMENET
-void PWM_increaseFrequency(void)
-{
-	if (mPWMFrequency < (PWM_MAX_FREQ - PWM_FREQ_INCREMENT))
-	{
-		mPWMFrequency += PWM_FREQ_INCREMENT;
-		PWM_setFrequency(mPWMFrequency);
-	}
-	else
-	{
-		mPWMFrequency = PWM_MIN_FREQ;
-		PWM_setFrequency(mPWMFrequency);		
-	}
-}
-
-
-/////////////////////////////////////////////
-//Decrement the frequency by PWM_FREQ_INCREMENET
-void PWM_decreaseFrequency(void)
-{
-	if (mPWMFrequency > (PWM_MIN_FREQ + PWM_FREQ_INCREMENT))
-	{
-		mPWMFrequency -= PWM_FREQ_INCREMENT;
-		PWM_setFrequency(mPWMFrequency);
-	}
-	else
-	{
-		mPWMFrequency = PWM_MAX_FREQ;
-		PWM_setFrequency(mPWMFrequency);		
-	}	
-}
 
 
 

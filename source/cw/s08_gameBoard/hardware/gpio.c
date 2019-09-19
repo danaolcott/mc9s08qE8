@@ -20,7 +20,7 @@
 //GPIO_init()
 //Configure the red and green leds on PA6 and PA7
 //Configure the user buttons on PA0, PB0, PB1
-//
+//as input.  Configure PB1 as interrupt (fire button)
 void GPIO_init(void)
 {
 	//LEDs - PA6 and PA7
@@ -40,7 +40,7 @@ void GPIO_init(void)
 	PTCD &=~ BIT1;
 	
 	//////////////////////////////////////////////
-	//PA0 - input, falling edged trigger interrupt
+	//PB1 - input, falling edged trigger interrupt
 	//Registers:
 	//KBISC - Status and control register
 	//KBF - Bit 3 - KBI interrupt flag
@@ -53,8 +53,8 @@ void GPIO_init(void)
 	
 	//KBIPE - interrupt pin enable - PA0, PB0, PB1
 	//See data sheet Figure 7-1
-	KBIPE_KBIPE0 = 1;			//enable PA0 interrupt
-	KBIPE_KBIPE4 = 1;			//enable PB0 interrupt
+//	KBIPE_KBIPE0 = 1;			//enable PA0 interrupt
+//	KBIPE_KBIPE4 = 1;			//enable PB0 interrupt
 	KBIPE_KBIPE5 = 1;			//enable PB1 interrupt
 		
 	//KBIES - edge select register - falling or rising edge
@@ -108,25 +108,10 @@ void interrupt VectorNumber_Vkeyboard kbi_isr(void)
 {
 	KBISC_KBACK = 1;	//clear the interrupt flag
 
-	//Check which pin generated the interrupt
-	//toggle red, green, or both
-	//PA0
-	//left
-	if (!(PTAD & BIT0))
-	{
-		Game_flagSetButtonPress(BUTTON_LEFT);
-	}
-	
-	//middle
-	else if (!(PTBD & BIT0))
-	{
-		Game_flagSetButtonPress(BUTTON_RIGHT);
-	}
-
 	//right
-	else if (!(PTBD & BIT1))
+	if (!(PTBD & BIT1))
 	{
-		Game_flagSetButtonPress(BUTTON_FIRE);
+		Game_flagSetButtonPress();
 	}
 }
 

@@ -61,9 +61,6 @@
 #define LCD_PLAYER_PAGE				7
 #define LCD_SCORE_PAGE				0
 
-#define PRINT_BUFFER_SIZE		16
-//extern volatile uint8_t printBuffer[PRINT_BUFFER_SIZE] @ 0x240u;		//right after framebuffer
-
 
 //prototypes
 void LCD_dummyDelay(unsigned long delay);
@@ -99,8 +96,6 @@ void LCD_putPixelRam(uint16_t x, uint16_t y, uint8_t color, uint8_t update);
 void LCD_drawLine(int x0, int y0, int x1, int y1, uint8_t color);
 
 void LCD_drawImageRam(uint16_t xPosition, uint16_t yPosition, Image_t image, uint8_t trans, uint8_t update);
-
-//void LCD_drawImageRam(uint16_t far xPosition, uint16_t far yPosition, Image_t far image, uint8_t far trans, uint8_t far update);
 
 
 #endif /* LCD_H_ */

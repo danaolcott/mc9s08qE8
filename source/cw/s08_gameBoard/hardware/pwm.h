@@ -17,13 +17,10 @@
 #define PWM_FREQ_INCREMENT			500
 #define PWM_DEFAULT_FREQ			1000
 
-
-
 void PWM_init(unsigned long freq);
 void PWM_setFrequency(unsigned long freq);
-unsigned long PWM_getFrequency(void);
-void PWM_toggleFrequency(void);
-void PWM_increaseFrequency(void);
-void PWM_decreaseFrequency(void);
+
+void PWM_on(void);
+void PWM_off(void);
 
 #endif /* PWM_H_ */

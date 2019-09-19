@@ -48,10 +48,20 @@ static EnemyStruct mEnemy[GAME_ENEMY_NUM_ENEMY] = {0x00};		//0x6C - bss
 static MissileStruct mPlayerMissile[GAME_MISSILE_NUM_MISSILE] = {0x00};
 static MissileStruct mEnemyMissile[GAME_MISSILE_NUM_MISSILE] = {0x00};
 
+//volatile uint16_t mGameScore = 0x00;
+//volatile uint8_t mGameLevel = 0x00;
 
 //flags
-static uint8_t mButtonFlag = 0x00;
-static uint8_t mPlayerFlag = 0x00;
+volatile uint8_t mButtonFlag = 0x00;
+volatile uint8_t mPlayerHitFlag = 0x00;
+volatile uint8_t mGameOverFlag = 0x00;
+
+
+//areas in far memory
+static uint16_t mGameScore @ 0x240u;
+static uint8_t mGameLevel @ 0x242u;
+
+
 
 /////////////////////////////////////////
 //No interrupt delay function
@@ -65,6 +75,15 @@ void Game_dummyDelay(unsigned int time)
 
 void Game_init(void)
 {
+	//reset the score, flags, etc
+	mButtonFlag = 0x00;
+	mPlayerHitFlag = 0x00;
+	mGameScore = 0x00;
+	mGameLevel = 0x00;
+		
+	LCD_clear(0x00);			//clear screen
+	LCD_clearBackground(0xAA);	//margins
+
 	Game_playerInit();
 	Game_enemyInit();
 	Game_missileInit();
@@ -128,14 +147,14 @@ void Game_missileInit(void)
 
 void Game_playerMoveLeft(void)
 {
-	if (mPlayer.xPosition > GAME_PLAYER_MIN_X)
-		mPlayer.xPosition--;	
+	if (mPlayer.xPosition > GAME_PLAYER_MIN_X + 2)
+		mPlayer.xPosition-=2;	
 }
 
 void Game_playerMoveRight(void)
 {
-	if (mPlayer.xPosition < GAME_PLAYER_MAX_X)
-		mPlayer.xPosition++;	
+	if (mPlayer.xPosition < GAME_PLAYER_MAX_X - 2)
+		mPlayer.xPosition+=2;
 }
 
 
@@ -434,13 +453,14 @@ void Game_missileMove(void)
             	//score player hit
             	numPlayerRemaining = Game_scorePlayerHit(i);
             	
-            	//set a flag
-            	mPlayerFlag |= GAME_FLAG_PLAYER_HIT;
-            	
+            	//set the player hit flag - polled and cleared in main
+            	mPlayerHitFlag = 1;
+            	            	
             	//last player??
             	if (numPlayerRemaining == 0)
             	{
-            		Game_init();
+            		//set the game over flag, cleared in main
+            		mGameOverFlag = 1;
             	}
             }
 		}
@@ -509,7 +529,7 @@ void Game_missileDraw(void)
 			LCD_putPixelRam(mEnemyMissile[i].x + 1, mEnemyMissile[i].y, 1, 0);
 			LCD_putPixelRam(mEnemyMissile[i].x + 1, mEnemyMissile[i].y + 1, 1, 0);
 		}
-	}	
+	}
 }
 
 
@@ -652,6 +672,9 @@ uint8_t Game_scoreEnemyHit(uint8_t enemyIndex, uint8_t missileIndex)
 	mPlayerMissile[missileIndex].alive = 0;
 	mPlayerMissile[missileIndex].x = 0x00;
 	mPlayerMissile[missileIndex].y = 0x00;
+	
+	//update the score
+	mGameScore += GAME_ENEMY_POINTS;
 
 	remaining = Game_enemyGetNumEnemy();
 	
@@ -679,8 +702,7 @@ uint8_t Game_scorePlayerHit(uint8_t missileIndex)
 		mPlayer.numLives = 0;
 	
 	return mPlayer.numLives;
-	
-	
+
 }
 
 
@@ -696,65 +718,103 @@ void Game_levelUp(void)
 
 
 
+///////////////////////////////////////////
+uint16_t Game_getGameScore(void)
+{
+	return mGameScore;
+}
+
+///////////////////////////////////////////
+uint8_t Game_getGameLevel(void)
+{
+	return mGameLevel;
+}
+
+///////////////////////////////////////////
+uint8_t Game_getNumPlayers(void)
+{
+	return mPlayer.numLives;
+}
+
+
+////////////////////////////////////////////
+//Display score, players, etc in header section
+//on the display.
+/*
+void Game_displayHeader(void)
+{	
+	uint8_t length = 0x00;
+	
+	LCD_drawString(0, 0, "S:");
+	//draw the score, level, etc
+
+	length = LCD_decimalToBuffer(mGameScore, printBuffer, GAME_PRINT_BUFFER_SIZE);
+	LCD_drawStringLength(0, 2, printBuffer, length);
+		
+	LCD_drawString(0, 8, "P:");
+	length = LCD_decimalToBuffer(mPlayer.numLives, printBuffer, GAME_PRINT_BUFFER_SIZE);
+	LCD_drawStringLength(0, 10, printBuffer, length);
+	
+	
+}
+ */
+
+
+
+
+
 ////////////////////////////////////////////
 //Flags - Bit level flags for memory saving
 //mPlayerFlag - hit = bit 0
 uint8_t Game_flagGetPlayerHitFlag(void)
 {
-	return (mPlayerFlag & GAME_FLAG_PLAYER_HIT);
+	return mPlayerHitFlag;
 }
 
 
 ////////////////////////////////////////////
 void Game_flagClearPlayerHitFlag(void)
 {
-	mPlayerFlag &=~ GAME_FLAG_PLAYER_HIT;
+	mPlayerHitFlag = 0;
 }
+
+
+
+uint8_t Game_flagGetGameOverFlag(void)
+{
+	return mGameOverFlag;
+}
+
+void Game_flagClearGameOverFlag(void)
+{
+	mGameOverFlag = 0x00;
+}
+
+
 
 
 /////////////////////////////////////////////
 //Flags - Button Flag - Bits 2, 1, 0
 //Button left, right, fire.  Called from the 
 //button press ISR
-void Game_flagSetButtonPress(ButtonType_t button)
+void Game_flagSetButtonPress(void)
 {
-	switch(button)
-	{
-		case BUTTON_LEFT: 	mButtonFlag |= BIT2;	break;
-		case BUTTON_RIGHT: 	mButtonFlag |= BIT1;	break;
-		case BUTTON_FIRE: 	mButtonFlag |= BIT0;	break;
-		case BUTTON_NONE:							break;
-		default:									break;
-	}
+	mButtonFlag = 1;
 }
 
 
 ////////////////////////////////////////////
 //Returns the first bit high on mButtonFlag
-ButtonType_t Game_flagGetButtonPress(void)
+uint8_t Game_flagGetButtonPress(void)
 {
-	if (mButtonFlag & BIT2)
-		return BUTTON_LEFT;
-	else if (mButtonFlag & BIT1)
-		return BUTTON_RIGHT;
-	else if (mButtonFlag & BIT0)
-		return BUTTON_FIRE;
-	else
-		return BUTTON_NONE;
+	return mButtonFlag;
 }
 
 
 //////////////////////////////////////////////
-void Game_flagClearButtonPress(ButtonType_t button)
+void Game_flagClearButtonPress(void)
 {
-	switch(button)
-	{
-		case BUTTON_LEFT: 	mButtonFlag &=~ BIT2;	break;
-		case BUTTON_RIGHT: 	mButtonFlag &=~ BIT1;	break;
-		case BUTTON_FIRE: 	mButtonFlag &=~ BIT0;	break;
-		case BUTTON_NONE:							break;
-		default:									break;
-	}	
+	mButtonFlag = 0;
 }
 
 
@@ -765,21 +825,39 @@ void Game_flagClearButtonPress(ButtonType_t button)
 //
 void Game_playExplosionPlayer(void)
 {
-	Game_missileInit();	
+	DisableInterrupts;
+	Game_missileInit();
 	LCD_clearFrameBuffer(0x00, 0);
-	Game_enemyDraw();	
-	Game_missileDraw();	
+	Game_enemyDraw();
+	Game_missileDraw();
 	LCD_updateFrameBuffer();
+	EnableInterrupts;
 	
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP1);
-	Game_dummyDelay(10000);
+	RTC_delay(200);
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP2);
-	Game_dummyDelay(10000);
+	RTC_delay(200);
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP3);
-	Game_dummyDelay(10000);
+	RTC_delay(200);
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP4);
-	Game_dummyDelay(10000);	
+	RTC_delay(200);
 }
+
+////////////////////////////////////////////
+//Game Over
+//Draw game over on the screen.  Init the game
+void Game_playGameOver(void)
+{
+	DisableInterrupts;
+	LCD_clearFrameBuffer(0x00, 0);
+	LCD_updateFrameBuffer();	
+	EnableInterrupts;
+	
+	//draw game over
+	LCD_drawString(3, 0, "   Game Over");
+	LCD_drawString(4, 0, "Press Button");
+}
+
 
 
 

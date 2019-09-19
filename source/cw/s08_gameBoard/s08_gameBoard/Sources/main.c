@@ -65,15 +65,14 @@
 //prototypes
 void System_init(void);
 
+static unsigned int gameLoopCounter = 0x00;
+uint8_t length = 0x00;
+static uint8_t far printBuffer[GAME_PRINT_BUFFER_SIZE] = {0x00};
+static uint8_t soundFlagEnemy = 0x00;
+static uint8_t soundFlagPlayer = 0x00;
 
-volatile uint16_t adcResult = 0x00;
-int i = 0;
-int n = 0x0;
-int counter = 0x00;
-uint8_t playerPosition = 0x00;
-uint8_t movingRight = 1;
 
-char far buffer[16];
+
 
 //overall, arrays should be assigned to a memory address
 //directly and not rely on the compiler to do it for you
@@ -84,7 +83,6 @@ char far buffer[16];
 //uint8_t near msg2[10];		//this works - assign msg2 to zero page, near keyword
 //uint8_t msg2[10];			//this does not work - garbage
 //
-//Passing pointer into function - dont try it.
 
 
 
@@ -97,64 +95,89 @@ void main(void)
 	
 	GPIO_init();				//IO
 	ADC_init();					//ADC Channel 1 - temp sensor
-	PWM_init(100);				//PWM output on PC0
+	PWM_init(1000);				//PWM output on PC0
 	SPI_init();					//configure the SPI
-	LCD_init();					//configure the LCD
-
-	//set up the LCD
-	LCD_clear(0x00);			//clear screen
-	LCD_clearBackground(0xAA);	//margins
-	
+	LCD_init();					//configure the LCD	
 	Game_init();				//initialize the game
 	
 	EnableInterrupts;			//enable interrupts
-
-
-	
-	
-	
+		
 	while (1)
 	{	
+		
+		//check the sound flag
+		if (soundFlagEnemy == 1)
+		{
+			soundFlagEnemy = 0;
+			PWM_setFrequency(0);
+		}
+		
+		if (soundFlagPlayer == 1)
+		{
+			soundFlagPlayer = 0;
+			PWM_setFrequency(0);			
+		}
+		
 		//check flag missile launch
-		if (!(counter % 10))
+		if (!(gameLoopCounter % 10))
 		{
 			Game_missileEnemyLaunch();
+			
+			soundFlagEnemy = 1;			
+			PWM_setFrequency(2000);
+			RTC_delay(100);
+			PWM_setFrequency(1000);
+			
 		}
-		
-		//check flag enemy hit
 		
 		//check flag player hit
-		if (Game_flagGetPlayerHitFlag() == GAME_FLAG_PLAYER_HIT)
+		if (Game_flagGetPlayerHitFlag() == 1)
 		{
 			Game_flagClearPlayerHitFlag();
-//			DisableInterrupts;
-//			Game_playExplosionPlayer();	
-//			EnableInterrupts;
+			Game_playExplosionPlayer();	
 		}
 		
-		//TODO: update left and right buttons as polling
-		
-		//left and right buttons - dont
-		
-		//check flag button press - move left
-		if (Game_flagGetButtonPress() == BUTTON_LEFT)
+		//check flag - game over
+		if (Game_flagGetGameOverFlag() == 1)
 		{
-			Game_flagClearButtonPress(BUTTON_LEFT);
-			Game_playerMoveLeft();
-		}
+			while (Game_flagGetGameOverFlag() == 1)
+			{
+				Game_playGameOver();
+				
+				//if either left or right
+				if ((!(PTAD & BIT0)) || (!(PTBD & BIT0)))
+				{
+					Game_flagClearGameOverFlag();
+					
+					DisableInterrupts;
+					Game_init();
+					EnableInterrupts;
+				}
 
-		//check flag button press - move right
-		if (Game_flagGetButtonPress() == BUTTON_RIGHT)
-		{
-			Game_flagClearButtonPress(BUTTON_RIGHT);
-			Game_playerMoveRight();
+				GPIO_toggleRed();
+				RTC_delay(500);				
+			}
 		}
 		
+		
+		//check for player move - move left
+		if (!(PTAD & BIT0))
+			Game_playerMoveLeft();
+		
+		//check for player move - move right
+		if (!(PTBD & BIT0))
+			Game_playerMoveRight();
+				
 		//check flag button press - fire
-		if (Game_flagGetButtonPress() == BUTTON_FIRE)
+		if (Game_flagGetButtonPress() == 1)
 		{
-			Game_flagClearButtonPress(BUTTON_FIRE);
-//			Game_missilePlayerLaunch();
+			Game_flagClearButtonPress();
+			Game_missilePlayerLaunch();
+			
+			soundFlagPlayer = 1;
+			PWM_setFrequency(1000);
+			RTC_delay(50);
+			PWM_setFrequency(2500);
 		}
 		
 		
@@ -169,9 +192,24 @@ void main(void)
 		Game_enemyDraw();					//draw enemy
 		Game_missileDraw();					//draw missiles
 		LCD_updateFrameBuffer();			//update the display
+
+		
+		//display the header info
+		LCD_drawString(0, 0, "S:");
+		//draw the score, level, etc
+
+		length = LCD_decimalToBuffer(Game_getGameScore(), printBuffer, GAME_PRINT_BUFFER_SIZE);
+		LCD_drawStringLength(0, 18, printBuffer, length);
+			
+	//	LCD_drawString(0, 8, "P:");
+	//	length = LCD_decimalToBuffer(Game_getNumPlayers(), printBuffer, GAME_PRINT_BUFFER_SIZE);
+	//	LCD_drawStringLength(0, 10, printBuffer, length);
+
+		
+
 		EnableInterrupts;
 
-		counter++;
+		gameLoopCounter++;
 		GPIO_toggleGreen();
 		RTC_delay(100);
 		

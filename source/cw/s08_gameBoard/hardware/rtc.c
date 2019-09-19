@@ -91,7 +91,10 @@ void RTC_init_external(void)
 }
 
 
-
+unsigned long RTC_getTimeTick(void)
+{
+	return gTimeTick;
+}
 
 /////////////////////////////////////////////
 //Delay in units of timebase for RTC interrupt

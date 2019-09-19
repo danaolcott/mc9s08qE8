@@ -18,6 +18,7 @@
 #include "config.h"
 #include "lcd.h"
 
+#define GAME_PRINT_BUFFER_SIZE		10
 #define GAME_PLAYER_PAGE			7
 #define GAME_PLAYER_WIDTH			16
 #define GAME_PLAYER_MIN_X			FRAME_BUFFER_OFFSET_X
@@ -38,6 +39,7 @@
 #define GAME_ENEMY_OFFSET_X			4
 #define GAME_ENEMY_HEIGHT			8
 #define GAME_ENEMY_WIDTH			12
+#define GAME_ENEMY_POINTS			30
 
 #define GAME_MISSILE_NUM_MISSILE	4
 #define GAME_MISSILE_MIN_Y			4
@@ -49,16 +51,9 @@
 #define GAME_IMAGE_MARGIN			1
 
 #define GAME_FLAG_PLAYER_HIT		BIT0
+#define GAME_FLAG_GAME_OVER			BIT1
 
-/////////////////////////////////////
-//Button Type_t
-typedef enum
-{
-	BUTTON_LEFT = 3,
-	BUTTON_RIGHT = 2,
-	BUTTON_FIRE = 1,
-	BUTTON_NONE = 0
-}ButtonType_t;
+
 
 /////////////////////////////////////
 //Player Definition
@@ -124,17 +119,28 @@ uint8_t Game_scorePlayerHit(uint8_t missileIndex);
 void Game_levelUp(void);
 
 
+//score and level, players, stats, etc
+uint16_t Game_getGameScore(void);
+uint8_t Game_getGameLevel(void);
+uint8_t Game_getNumPlayers(void);
+//void Game_displayHeader(void);
+
+
 //flags
 uint8_t Game_flagGetPlayerHitFlag(void);
 void Game_flagClearPlayerHitFlag(void);
 
-void Game_flagSetButtonPress(ButtonType_t button);
-ButtonType_t Game_flagGetButtonPress(void);
-void Game_flagClearButtonPress(ButtonType_t button);
+uint8_t Game_flagGetGameOverFlag(void);
+void Game_flagClearGameOverFlag(void);
 
+
+void Game_flagSetButtonPress(void);
+uint8_t Game_flagGetButtonPress(void);
+void Game_flagClearButtonPress(void);
 
 //player explosion
 void Game_playExplosionPlayer(void);
+void Game_playGameOver(void);
 
 
 ///////////////////////////////////

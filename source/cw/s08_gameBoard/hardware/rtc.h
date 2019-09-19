@@ -32,6 +32,7 @@ typedef enum
 
 void RTC_init_internal(RTC_Frequency_t freq);
 void RTC_init_external(void);
+unsigned long RTC_getTimeTick(void);
 void RTC_delay(unsigned int delay);
 
 
