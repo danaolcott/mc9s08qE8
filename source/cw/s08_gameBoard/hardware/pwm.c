@@ -82,7 +82,10 @@ void PWM_init(unsigned long freq)
 	
 	//Toggle output on channel match
 	TPM1C2SC_ELS2B = 0;		//toggle on match
-	TPM1C2SC_ELS2A = 1;		//toggle on match	
+	TPM1C2SC_ELS2A = 1;		//toggle on match
+	
+	//turn the PWM off initially
+	PWM_Disable();
 }
 
 
@@ -94,14 +97,7 @@ void PWM_setFrequency(unsigned long freq)
 {
 	unsigned long reloadValue = 0x00;
 	
-	//disable interrupts
-	DisableInterrupts;
-
 	reloadValue = (1000000 / (2*freq)) - 1;
-
-	//reset the counter
-//	TPM1CNTH = 0;
-//	TPM1CNTL = 0;
 	
 	//set the registers
 	TPM1C2VH = (uint8_t)((reloadValue) >> 8);
@@ -110,26 +106,53 @@ void PWM_setFrequency(unsigned long freq)
 	//Modulo registers - set same as reload value
 	TPM1MODH = (uint8_t)((reloadValue) >> 8);
 	TPM1MODL = (uint8_t)((reloadValue) % 0xFF);
-	
-	//disable interrupts
-	EnableInterrupts;
+
 }
+
+
+////////////////////////////////////////
+void PWM_setFreq_kHz(uint8_t far freq)
+{
+	unsigned long reloadValue = 0x00;
+	unsigned long _freq = ((unsigned long)freq) * 1000;
+	
+	reloadValue = (1000000 / (2*_freq)) - 1;
+	
+	//set the registers
+	TPM1C2VH = (uint8_t)((reloadValue) >> 8);
+	TPM1C2VL = (uint8_t)((reloadValue) % 0xFF);
+	
+	//Modulo registers - set same as reload value
+	TPM1MODH = (uint8_t)((reloadValue) >> 8);
+	TPM1MODL = (uint8_t)((reloadValue) % 0xFF);	
+}
+
 
 
 //////////////////////////////////
 //Enable the PWM output
-void PWM_on(void)
+void PWM_Enable(void)
 {
 	//clock source
 	TPM1SC_CLKSB = 0;		//clk source - 01 - bus clock
 	TPM1SC_CLKSA = 1;		//clk source - 01 - bus clock
 }
 
-void PWM_off(void)
+/////////////////////////////////////
+//Disable the clock source to PWM output
+void PWM_Disable(void)
 {
 	//clock source
 	TPM1SC_CLKSB = 0;		//clk source - 00 - none
 	TPM1SC_CLKSA = 0;		//clk source - 00 - none
+}
+
+////////////////////////////////////
+//Read the clock source bit.  If the 
+//PWM output is enabled, the bit is high
+uint8_t PWM_isEnabled(void)
+{
+	return TPM1SC_CLKSA;		//clock source A - 1 if it's on
 }
 
 

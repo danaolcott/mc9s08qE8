@@ -20,6 +20,7 @@
 #include <stddef.h>
 #include "config.h"
 #include "rtc.h"
+#include "sound.h"
 
 //global time tick for delay function
 volatile unsigned long gTimeTick = 0x00;
@@ -120,6 +121,11 @@ void interrupt VectorNumber_Vrtc rtc_isr(void)
 {
 	RTCSC_RTIF = 1;			//clear the interrupt flag	
 	gTimeTick++;			//increment the time tick	
+	
+//	if ((gTimeTick % 100) == 0)
+//	{
+//		Sound_InterruptHandler();
+//	}
 }
 
 

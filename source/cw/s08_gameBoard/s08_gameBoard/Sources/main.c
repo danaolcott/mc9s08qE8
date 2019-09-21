@@ -61,6 +61,7 @@
 #include "pwm.h"
 #include "lcd.h"
 #include "game.h"
+#include "sound.h"
 
 //prototypes
 void System_init(void);
@@ -68,10 +69,6 @@ void System_init(void);
 static unsigned int gameLoopCounter = 0x00;
 uint8_t length = 0x00;
 static uint8_t far printBuffer[GAME_PRINT_BUFFER_SIZE] = {0x00};
-static uint8_t soundFlagEnemy = 0x00;
-static uint8_t soundFlagPlayer = 0x00;
-
-
 
 
 //overall, arrays should be assigned to a memory address
@@ -99,35 +96,17 @@ void main(void)
 	SPI_init();					//configure the SPI
 	LCD_init();					//configure the LCD	
 	Game_init();				//initialize the game
-	
+	Sound_init();
 	EnableInterrupts;			//enable interrupts
-		
+	
+	
 	while (1)
 	{	
-		
-		//check the sound flag
-		if (soundFlagEnemy == 1)
-		{
-			soundFlagEnemy = 0;
-			PWM_setFrequency(0);
-		}
-		
-		if (soundFlagPlayer == 1)
-		{
-			soundFlagPlayer = 0;
-			PWM_setFrequency(0);			
-		}
-		
+				
 		//check flag missile launch
 		if (!(gameLoopCounter % 10))
 		{
-			Game_missileEnemyLaunch();
-			
-			soundFlagEnemy = 1;			
-			PWM_setFrequency(2000);
-			RTC_delay(100);
-			PWM_setFrequency(1000);
-			
+			Game_missileEnemyLaunch();			
 		}
 		
 		//check flag player hit
@@ -159,6 +138,12 @@ void main(void)
 			}
 		}
 		
+		//check if sound needs to be played
+		if (PWM_isEnabled() == 1)
+		{
+			Sound_InterruptHandler();
+		}
+		
 		
 		//check for player move - move left
 		if (!(PTAD & BIT0))
@@ -174,15 +159,10 @@ void main(void)
 			Game_flagClearButtonPress();
 			Game_missilePlayerLaunch();
 			
-			soundFlagPlayer = 1;
-			PWM_setFrequency(1000);
-			RTC_delay(50);
-			PWM_setFrequency(2500);
+			Sound_playSound();				//start sound and play first entry
 		}
 		
 		
-		
-//		Game_playerMoveDemo();					//player flag
 		Game_enemyMove();					//move enemy
 		Game_missileMove();					//move all missiles
 

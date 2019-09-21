@@ -20,7 +20,11 @@
 void PWM_init(unsigned long freq);
 void PWM_setFrequency(unsigned long freq);
 
-void PWM_on(void);
-void PWM_off(void);
+void PWM_setFreq_kHz(uint8_t far freq);
+
+
+void PWM_Enable(void);
+void PWM_Disable(void);
+uint8_t PWM_isEnabled(void);
 
 #endif /* PWM_H_ */
