@@ -14,15 +14,16 @@
 #include "config.h"
 #include "sound.h"
 #include "pwm.h"
+#include "rtc.h"
 
 
 ///////////////////////////////////////////////////////
 //Sound Beep
 const uint8_t _soundBeep[] =
-{4, 3, 2};
+{1, 2, 3, 4, 3, 2, 1};
 
 const SoundData soundBeep = {
-	3,
+	7,
 	(uint8_t *far) _soundBeep,
 };
 
@@ -95,6 +96,92 @@ void Sound_InterruptHandler(void)
 		mSoundIndex = 0x00;
 	}		
 }
+
+
+///////////////////////////////////////////
+//Blocking methods for playing sound
+void Sound_playPlayerFire_blocking(void)
+{
+	uint16_t i = 0x0;
+	
+	PWM_Enable();
+	
+	for (i = 2500 ; i > 1500 ; i-= 250)
+	{
+		PWM_setFrequency(i);
+		RTC_delay(15);
+	}		
+	PWM_Disable();
+}
+
+void Sound_playEnemyFire_blocking(void)
+{
+	uint16_t i = 0x0;
+	
+	PWM_Enable();
+	
+	for (i = 1000 ; i < 2000 ; i+= 250)
+	{
+		PWM_setFrequency(i);
+		RTC_delay(15);
+	}		
+	PWM_Disable();
+}
+
+
+void Sound_playPlayerExplode_blocking(void)
+{	
+	PWM_setFrequency(200);
+
+	PWM_Enable();
+	RTC_delay(100);
+	PWM_Disable();
+	RTC_delay(100);
+	
+	PWM_setFrequency(300);
+	PWM_Enable();
+	RTC_delay(200);
+	PWM_Disable();
+}
+
+void Sound_playEnemyExplode_blocking(void)
+{
+	uint8_t i = 0x0;
+	PWM_setFrequency(3000);	
+	
+	PWM_Enable();
+	RTC_delay(80);
+	PWM_Disable();
+}
+
+void Sound_playLevelUp_blocking(void)
+{
+	PWM_setFrequency(500);	
+	PWM_Enable();
+	RTC_delay(100);
+	PWM_setFrequency(3000);	
+	RTC_delay(50);
+	PWM_Disable();
+	RTC_delay(50);
+	PWM_Enable();
+	RTC_delay(50);
+	PWM_Disable();
+}
+
+void Sound_playGameOver_blocking(void)
+{
+	uint8_t i = 0x0;
+	PWM_setFreq_kHz(1);	
+	
+	for (i = 0x00 ; i < 8 ; i++)
+	{
+		PWM_Enable();
+		RTC_delay(50);
+		PWM_Disable();	
+		RTC_delay(50);		
+	}	
+}
+
 
 
 

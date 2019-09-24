@@ -481,6 +481,9 @@ void LCD_drawImagePage(uint8_t page, uint8_t offset, Image_t image)
 		case BITMAP_PLAYER_EXP3: 	ptr = &bmimgPlayerInvExp3Bmp;	break;
 		case BITMAP_PLAYER_EXP4: 	ptr = &bmimgPlayerInvExp4Bmp;	break;
 		case BITMAP_ENEMY:			ptr = &bmenemy1Bmp;				break;
+		case BITMAP_PLAYER_ICON3:	ptr = &bmimgPlayerIcon_3;		break;
+		case BITMAP_PLAYER_ICON2:	ptr = &bmimgPlayerIcon_2;		break;
+		case BITMAP_PLAYER_ICON1:	ptr = &bmimgPlayerIcon_1;		break;
 		default:					ptr = &bmimgPlayerInvBmp;		break;
 		
 	}

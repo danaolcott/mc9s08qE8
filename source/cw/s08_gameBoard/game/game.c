@@ -19,6 +19,7 @@
 #include "bitmap.h"
 #include "gpio.h"
 #include "rtc.h"		//delay
+#include "pwm.h"
 
 //Game objects
 //Note: Enemy array should be declared as static or 
@@ -55,7 +56,8 @@ static MissileStruct mEnemyMissile[GAME_MISSILE_NUM_MISSILE] = {0x00};
 volatile uint8_t mButtonFlag = 0x00;
 volatile uint8_t mPlayerHitFlag = 0x00;
 volatile uint8_t mGameOverFlag = 0x00;
-
+volatile uint8_t mGameLevelUpFlag = 0x00;
+volatile uint8_t mEnemyHitFlag = 0x00;
 
 //areas in far memory
 static uint16_t mGameScore @ 0x240u;
@@ -78,6 +80,8 @@ void Game_init(void)
 	//reset the score, flags, etc
 	mButtonFlag = 0x00;
 	mPlayerHitFlag = 0x00;
+	mGameLevelUpFlag = 0x00;
+	mEnemyHitFlag = 0x00;
 	mGameScore = 0x00;
 	mGameLevel = 0x00;
 		
@@ -301,7 +305,6 @@ void Game_enemyMove(void)
 	
 	//check for direction change up
 	flag = 0;
-	
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
 		//read the flags
@@ -411,10 +414,14 @@ void Game_missileMove(void)
                     	//numEnemyRemaining = 0x00;
                     	numEnemyRemaining = Game_scoreEnemyHit(j, i);
                     	
+                    	//set the enemy hit flag
+                    	mEnemyHitFlag = 1;
+                    	
                     	if (numEnemyRemaining == 0)
                     	{
                     		//reset the enemy
                     		Game_levelUp();
+
                     	}
                     }
 				}
@@ -712,8 +719,10 @@ uint8_t Game_scorePlayerHit(uint8_t missileIndex)
 //and missile arrays
 void Game_levelUp(void)
 {
-	Game_enemyInit();
-	Game_missileInit();
+	mGameLevel++;				//increase the level
+	Game_enemyInit();			//reset the enemy
+	Game_missileInit();			//reset the missiles
+	mGameLevelUpFlag = 1;		//checked, cleared in main
 }
 
 
@@ -736,28 +745,6 @@ uint8_t Game_getNumPlayers(void)
 	return mPlayer.numLives;
 }
 
-
-////////////////////////////////////////////
-//Display score, players, etc in header section
-//on the display.
-/*
-void Game_displayHeader(void)
-{	
-	uint8_t length = 0x00;
-	
-	LCD_drawString(0, 0, "S:");
-	//draw the score, level, etc
-
-	length = LCD_decimalToBuffer(mGameScore, printBuffer, GAME_PRINT_BUFFER_SIZE);
-	LCD_drawStringLength(0, 2, printBuffer, length);
-		
-	LCD_drawString(0, 8, "P:");
-	length = LCD_decimalToBuffer(mPlayer.numLives, printBuffer, GAME_PRINT_BUFFER_SIZE);
-	LCD_drawStringLength(0, 10, printBuffer, length);
-	
-	
-}
- */
 
 
 
@@ -790,6 +777,28 @@ void Game_flagClearGameOverFlag(void)
 	mGameOverFlag = 0x00;
 }
 
+
+uint8_t Game_flagGetLevelUpFlag(void)
+{
+	return mGameLevelUpFlag;
+}
+
+void Game_flagClearLevelUpFlag(void)
+{
+	mGameLevelUpFlag = 0x00;
+}
+
+
+
+uint8_t Game_flagGetEnemyHitFlag(void)
+{
+	return mEnemyHitFlag;
+}
+
+void Game_flagClearEnemyHitFlag(void)
+{
+	mEnemyHitFlag = 0x00;
+}
 
 
 
@@ -843,19 +852,77 @@ void Game_playExplosionPlayer(void)
 	RTC_delay(200);
 }
 
+
+//////////////////////////////////////////////
+//Draw player ship explosion with delay
+//player explodes.  Should remove all missiles
+//in the buffer so you can't see them hanging
+//
+//Adds sound
+void Game_playExplosionPlayer_withSound(void)
+{
+	DisableInterrupts;
+	Game_missileInit();
+	LCD_clearFrameBuffer(0x00, 0);
+	Game_enemyDraw();
+	Game_missileDraw();
+	LCD_updateFrameBuffer();
+	EnableInterrupts;
+	
+	PWM_setFrequency(200);
+	PWM_Enable();
+	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP1);
+	RTC_delay(200);
+
+	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP2);
+	PWM_Disable();
+	RTC_delay(200);
+	
+	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP3);
+	PWM_setFrequency(300);
+	PWM_Enable();
+	RTC_delay(200);
+	
+	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP4);
+	PWM_Disable();
+	RTC_delay(200);
+	
+	PWM_setFrequency(200);
+	PWM_Enable();
+	RTC_delay(200);
+	PWM_Disable();	
+}
+
+
 ////////////////////////////////////////////
 //Game Over
 //Draw game over on the screen.  Init the game
+//draw a sequence on the boarder, flip from AA to 55
 void Game_playGameOver(void)
 {
+	static uint8_t toggle = 0x00;
+	
 	DisableInterrupts;
 	LCD_clearFrameBuffer(0x00, 0);
 	LCD_updateFrameBuffer();	
 	EnableInterrupts;
 	
 	//draw game over
-	LCD_drawString(3, 0, "   Game Over");
-	LCD_drawString(4, 0, "Press Button");
+	LCD_drawString(2, 32, "Game");
+	LCD_drawString(3, 32, "Over");
+	LCD_drawString(5, 30, "Press");	
+	LCD_drawString(6, 26, "Button");
+	
+	if (toggle == 1)
+	{
+		LCD_clearBackground(0xAA);
+		toggle = 0x00;
+	}
+	else
+	{
+		LCD_clearBackground(0x55);
+		toggle = 0x01;
+	}
 }
 
 

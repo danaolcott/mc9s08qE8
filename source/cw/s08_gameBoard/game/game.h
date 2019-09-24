@@ -123,7 +123,6 @@ void Game_levelUp(void);
 uint16_t Game_getGameScore(void);
 uint8_t Game_getGameLevel(void);
 uint8_t Game_getNumPlayers(void);
-//void Game_displayHeader(void);
 
 
 //flags
@@ -133,13 +132,20 @@ void Game_flagClearPlayerHitFlag(void);
 uint8_t Game_flagGetGameOverFlag(void);
 void Game_flagClearGameOverFlag(void);
 
+uint8_t Game_flagGetLevelUpFlag(void);
+void Game_flagClearLevelUpFlag(void);
+
+uint8_t Game_flagGetEnemyHitFlag(void);
+void Game_flagClearEnemyHitFlag(void);
 
 void Game_flagSetButtonPress(void);
 uint8_t Game_flagGetButtonPress(void);
 void Game_flagClearButtonPress(void);
 
-//player explosion
+//player explosion and explosion with sound
 void Game_playExplosionPlayer(void);
+void Game_playExplosionPlayer_withSound(void);
+
 void Game_playGameOver(void);
 
 

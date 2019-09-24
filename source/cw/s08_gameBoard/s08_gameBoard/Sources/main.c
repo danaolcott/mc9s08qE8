@@ -98,27 +98,42 @@ void main(void)
 	Game_init();				//initialize the game
 	Sound_init();
 	EnableInterrupts;			//enable interrupts
-	
-	
+		
 	while (1)
 	{	
-				
 		//check flag missile launch
 		if (!(gameLoopCounter % 10))
 		{
-			Game_missileEnemyLaunch();			
+			Game_missileEnemyLaunch();
+			Sound_playEnemyFire_blocking();
 		}
 		
 		//check flag player hit
 		if (Game_flagGetPlayerHitFlag() == 1)
 		{
 			Game_flagClearPlayerHitFlag();
-			Game_playExplosionPlayer();	
+			Game_playExplosionPlayer_withSound();	//image sequence with sound
+		}
+		
+		//check flag - enemy hit flag
+		if (Game_flagGetEnemyHitFlag() == 1)
+		{
+			Game_flagClearEnemyHitFlag();
+			Sound_playEnemyExplode_blocking();
+		}
+		
+		//check level up flag
+		if (Game_flagGetLevelUpFlag() == 1)
+		{
+			Game_flagClearLevelUpFlag();
+			Sound_playLevelUp_blocking();
 		}
 		
 		//check flag - game over
 		if (Game_flagGetGameOverFlag() == 1)
 		{
+			Sound_playGameOver_blocking();
+
 			while (Game_flagGetGameOverFlag() == 1)
 			{
 				Game_playGameOver();
@@ -138,12 +153,6 @@ void main(void)
 			}
 		}
 		
-		//check if sound needs to be played
-		if (PWM_isEnabled() == 1)
-		{
-			Sound_InterruptHandler();
-		}
-		
 		
 		//check for player move - move left
 		if (!(PTAD & BIT0))
@@ -158,41 +167,44 @@ void main(void)
 		{
 			Game_flagClearButtonPress();
 			Game_missilePlayerLaunch();
-			
-			Sound_playSound();				//start sound and play first entry
+			Sound_playPlayerFire_blocking();
 		}
-		
-		
+				
 		Game_enemyMove();					//move enemy
 		Game_missileMove();					//move all missiles
 
+		//update display with interrupts disabled
 		DisableInterrupts;					//stop the timer
 		LCD_clearFrameBuffer(0, 0);			//clear the ram buffer
 		Game_playerDraw();					//update player image
 		Game_enemyDraw();					//draw enemy
 		Game_missileDraw();					//draw missiles
 		LCD_updateFrameBuffer();			//update the display
-
 		
 		//display the header info
 		LCD_drawString(0, 0, "S:");
 		//draw the score, level, etc
 
-		length = LCD_decimalToBuffer(Game_getGameScore(), printBuffer, GAME_PRINT_BUFFER_SIZE);
+		length = LCD_decimalToBuffer(Game_getGameScore(), printBuffer, (uint8_t)GAME_PRINT_BUFFER_SIZE);
 		LCD_drawStringLength(0, 18, printBuffer, length);
-			
-	//	LCD_drawString(0, 8, "P:");
-	//	length = LCD_decimalToBuffer(Game_getNumPlayers(), printBuffer, GAME_PRINT_BUFFER_SIZE);
-	//	LCD_drawStringLength(0, 10, printBuffer, length);
 
+		LCD_drawString(0, 60, "L:");
+		length = LCD_decimalToBuffer(Game_getGameLevel(), printBuffer, (uint8_t)GAME_PRINT_BUFFER_SIZE);
+		LCD_drawStringLength(0, 74, printBuffer, length);
 		
+		//draw num player icon at 90
+		switch(Game_getNumPlayers())
+		{
+			case 3:	LCD_drawImagePage(0, 90, BITMAP_PLAYER_ICON3);	break;
+			case 2:	LCD_drawImagePage(0, 90, BITMAP_PLAYER_ICON2);	break;
+			case 1:	LCD_drawImagePage(0, 90, BITMAP_PLAYER_ICON1);	break;
+		}
 
 		EnableInterrupts;
 
 		gameLoopCounter++;
 		GPIO_toggleGreen();
-		RTC_delay(100);
-		
+		RTC_delay(100);		
 	}
 }
 

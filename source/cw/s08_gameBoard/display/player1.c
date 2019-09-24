@@ -93,3 +93,53 @@ const ImageData bmimgPlayerInvExp4Bmp = {
 };
 
 
+
+
+/////////////////////////////////////////////////
+//Player icons - 3 players
+const uint8_t _acimgPlayerIcon_3[] = 
+{
+0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00
+};
+
+const ImageData bmimgPlayerIcon_3 = {
+	8,
+	8,
+	(uint8_t *far)_acimgPlayerIcon_3,
+};
+
+
+
+/////////////////////////////////////////////////
+//Player icons - 2 players
+const uint8_t _acimgPlayerIcon_2[] = 
+{
+0x00, 0x00, 0xFF, 0x00, 0x00, 0xFF, 0x00, 0x00
+};
+
+const ImageData bmimgPlayerIcon_2 = {
+	8,
+	8,
+	(uint8_t *far)_acimgPlayerIcon_2,
+};
+
+
+
+/////////////////////////////////////////////////
+//Player icons - 1 players
+const uint8_t _acimgPlayerIcon_1[] = 
+{
+0x00, 0x00, 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00
+};
+
+const ImageData bmimgPlayerIcon_1 = {
+	8,
+	8,
+	(uint8_t *far)_acimgPlayerIcon_1,
+};
+
+
+
+
+
+

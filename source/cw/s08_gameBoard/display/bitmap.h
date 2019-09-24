@@ -19,7 +19,10 @@ typedef enum Image
 	BITMAP_PLAYER_EXP2,
 	BITMAP_PLAYER_EXP3,
 	BITMAP_PLAYER_EXP4,	
-	BITMAP_ENEMY
+	BITMAP_ENEMY,
+	BITMAP_PLAYER_ICON3,
+	BITMAP_PLAYER_ICON2,
+	BITMAP_PLAYER_ICON1
 }Image_t;
 
 typedef struct ImageData
@@ -37,6 +40,9 @@ extern const ImageData bmimgPlayerInvExp2Bmp;
 extern const ImageData bmimgPlayerInvExp3Bmp;
 extern const ImageData bmimgPlayerInvExp4Bmp;
 
+extern const ImageData bmimgPlayerIcon_3;
+extern const ImageData bmimgPlayerIcon_2;
+extern const ImageData bmimgPlayerIcon_1;
 
 extern const ImageData bmenemy1Bmp;
 
