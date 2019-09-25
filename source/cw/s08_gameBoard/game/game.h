@@ -99,8 +99,6 @@ void Game_missileInit(void);
 void Game_playerMoveLeft(void);
 void Game_playerMoveRight(void);
 void Game_playerMoveDemo(void);
-
-
 void Game_enemyMove(void);
 void Game_missileMove(void);
 
@@ -118,12 +116,10 @@ uint8_t Game_scoreEnemyHit(uint8_t enemyIndex, uint8_t missileIndex);
 uint8_t Game_scorePlayerHit(uint8_t missileIndex);
 void Game_levelUp(void);
 
-
 //score and level, players, stats, etc
 uint16_t Game_getGameScore(void);
 uint8_t Game_getGameLevel(void);
 uint8_t Game_getNumPlayers(void);
-
 
 //flags
 uint8_t Game_flagGetPlayerHitFlag(void);
@@ -142,10 +138,9 @@ void Game_flagSetButtonPress(void);
 uint8_t Game_flagGetButtonPress(void);
 void Game_flagClearButtonPress(void);
 
-//player explosion and explosion with sound
+//play sequences, explosion, explosion with sound
 void Game_playExplosionPlayer(void);
 void Game_playExplosionPlayer_withSound(void);
-
 void Game_playGameOver(void);
 
 

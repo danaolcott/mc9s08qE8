@@ -75,6 +75,7 @@ void LCD_off(void);
 
 void LCD_setPage(uint8_t page);
 void LCD_setColumn(uint8_t column);
+void LCD_setContrast(uint8_t contrast);
 
 void LCD_clear(uint8_t value);
 void LCD_clearFrameBuffer(uint8_t value, uint8_t update);

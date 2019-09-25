@@ -49,9 +49,6 @@
 #include "derivative.h" /* include peripheral declarations */
 
 #include "mc9s08qe8.h"
-//#include <stddef.h>
-//#include <string.h>
-//#include <stdio.h>
 #include "config.h"
 #include "rtc.h"
 #include "clock.h"
@@ -66,21 +63,10 @@
 //prototypes
 void System_init(void);
 
+//variables in main.
 static unsigned int gameLoopCounter = 0x00;
 uint8_t length = 0x00;
 static uint8_t far printBuffer[GAME_PRINT_BUFFER_SIZE] = {0x00};
-
-
-//overall, arrays should be assigned to a memory address
-//directly and not rely on the compiler to do it for you
-//because in this tiny memory model, you have no idea if 
-//something is going to get corrupted
-//
-//uint8_t far msg2[10];		//this works - assign msg2 to far section of RAM
-//uint8_t near msg2[10];		//this works - assign msg2 to zero page, near keyword
-//uint8_t msg2[10];			//this does not work - garbage
-//
-
 
 
 void main(void) 
@@ -88,7 +74,7 @@ void main(void)
 	DisableInterrupts;			//disable interrupts
 	System_init();				//configure system level config bits
 	Clock_init();				//configure clock for external
-	RTC_init_internal(RTC_FREQ_1000HZ);
+	RTC_init_internal(RTC_FREQ_1000HZ);	//use internal timer for 1000hz interrupt
 	
 	GPIO_init();				//IO
 	ADC_init();					//ADC Channel 1 - temp sensor
@@ -98,10 +84,45 @@ void main(void)
 	Game_init();				//initialize the game
 	Sound_init();
 	EnableInterrupts;			//enable interrupts
+	
+	
+	//put something here to adjust contrast
+
+	while(1)
+	{
+		DisableInterrupts;
+		LCD_setContrast(0);
+		EnableInterrupts;
+		RTC_delay(1000);
+		
+		DisableInterrupts;
+		LCD_setContrast(1);
+		EnableInterrupts;
+		
+		RTC_delay(1000);
+	}
+	
+	
 		
 	while (1)
 	{	
-		//check flag missile launch
+		//check for player move - move left
+		if (!(PTAD & BIT0))
+			Game_playerMoveLeft();
+		
+		//check for player move - move right
+		if (!(PTBD & BIT0))
+			Game_playerMoveRight();
+				
+		//check flag button press - fire
+		if (Game_flagGetButtonPress() == 1)
+		{
+			Game_flagClearButtonPress();
+			Game_missilePlayerLaunch();
+			Sound_playPlayerFire_blocking();
+		}
+
+		//check flag enemy missile launch
 		if (!(gameLoopCounter % 10))
 		{
 			Game_missileEnemyLaunch();
@@ -112,7 +133,7 @@ void main(void)
 		if (Game_flagGetPlayerHitFlag() == 1)
 		{
 			Game_flagClearPlayerHitFlag();
-			Game_playExplosionPlayer_withSound();	//image sequence with sound
+			Game_playExplosionPlayer_withSound();
 		}
 		
 		//check flag - enemy hit flag
@@ -153,23 +174,8 @@ void main(void)
 			}
 		}
 		
-		
-		//check for player move - move left
-		if (!(PTAD & BIT0))
-			Game_playerMoveLeft();
-		
-		//check for player move - move right
-		if (!(PTBD & BIT0))
-			Game_playerMoveRight();
-				
-		//check flag button press - fire
-		if (Game_flagGetButtonPress() == 1)
-		{
-			Game_flagClearButtonPress();
-			Game_missilePlayerLaunch();
-			Sound_playPlayerFire_blocking();
-		}
-				
+
+		//move enemy and missile				
 		Game_enemyMove();					//move enemy
 		Game_missileMove();					//move all missiles
 
@@ -192,7 +198,7 @@ void main(void)
 		length = LCD_decimalToBuffer(Game_getGameLevel(), printBuffer, (uint8_t)GAME_PRINT_BUFFER_SIZE);
 		LCD_drawStringLength(0, 74, printBuffer, length);
 		
-		//draw num player icon at 90
+		//display number of players as image
 		switch(Game_getNumPlayers())
 		{
 			case 3:	LCD_drawImagePage(0, 90, BITMAP_PLAYER_ICON3);	break;

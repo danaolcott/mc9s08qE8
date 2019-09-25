@@ -709,7 +709,6 @@ uint8_t Game_scorePlayerHit(uint8_t missileIndex)
 		mPlayer.numLives = 0;
 	
 	return mPlayer.numLives;
-
 }
 
 
@@ -745,75 +744,67 @@ uint8_t Game_getNumPlayers(void)
 	return mPlayer.numLives;
 }
 
-
-
-
-
-
 ////////////////////////////////////////////
-//Flags - Bit level flags for memory saving
-//mPlayerFlag - hit = bit 0
+//Flags - These are typically set object move
+//functions and checked in the main game loop
+//Flag is used to play sound, an image sequence
 uint8_t Game_flagGetPlayerHitFlag(void)
 {
 	return mPlayerHitFlag;
 }
 
-
-////////////////////////////////////////////
+/////////////////////////////////////////////
 void Game_flagClearPlayerHitFlag(void)
 {
 	mPlayerHitFlag = 0;
 }
 
-
-
+/////////////////////////////////////////////
 uint8_t Game_flagGetGameOverFlag(void)
 {
 	return mGameOverFlag;
 }
 
+////////////////////////////////////////////
 void Game_flagClearGameOverFlag(void)
 {
 	mGameOverFlag = 0x00;
 }
 
-
+////////////////////////////////////////////
 uint8_t Game_flagGetLevelUpFlag(void)
 {
 	return mGameLevelUpFlag;
 }
 
+///////////////////////////////////////////
 void Game_flagClearLevelUpFlag(void)
 {
 	mGameLevelUpFlag = 0x00;
 }
 
-
-
+///////////////////////////////////////////
 uint8_t Game_flagGetEnemyHitFlag(void)
 {
 	return mEnemyHitFlag;
 }
 
+///////////////////////////////////////////
 void Game_flagClearEnemyHitFlag(void)
 {
 	mEnemyHitFlag = 0x00;
 }
 
-
-
 /////////////////////////////////////////////
-//Flags - Button Flag - Bits 2, 1, 0
-//Button left, right, fire.  Called from the 
-//button press ISR
+//Flags - Button Flag - Fire button
+//Set in button press ISR, and checked in the
+//main game loop
 void Game_flagSetButtonPress(void)
 {
 	mButtonFlag = 1;
 }
 
-
 ////////////////////////////////////////////
-//Returns the first bit high on mButtonFlag
 uint8_t Game_flagGetButtonPress(void)
 {
 	return mButtonFlag;
@@ -857,8 +848,8 @@ void Game_playExplosionPlayer(void)
 //Draw player ship explosion with delay
 //player explodes.  Should remove all missiles
 //in the buffer so you can't see them hanging
-//
-//Adds sound
+//This version adds sound to the sequence
+//Interrupts are disabled for clearing the display
 void Game_playExplosionPlayer_withSound(void)
 {
 	DisableInterrupts;
