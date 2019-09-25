@@ -158,20 +158,6 @@ void LCD_setColumn(uint8_t column)
 	LCD_writeCommand(high);						//set the high bits	
 }
 
-
-///////////////////////////////////////////
-//Base address = 0x80 and contrast setting
-//is lower 7 bits - 0 to 63
-void LCD_setContrast(uint8_t contrast)
-{
-	uint8_t value = 0x80;
-	value |= (contrast & 0x7F);	
-	LCD_writeCommand(value);
-}
-
-
-
-
 /////////////////////////////////////////////
 //Clear the LCD with a value
 //This area includes the framebuffer and borders

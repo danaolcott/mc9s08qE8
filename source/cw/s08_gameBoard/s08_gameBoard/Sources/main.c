@@ -84,25 +84,6 @@ void main(void)
 	Game_init();				//initialize the game
 	Sound_init();
 	EnableInterrupts;			//enable interrupts
-	
-	
-	//put something here to adjust contrast
-
-	while(1)
-	{
-		DisableInterrupts;
-		LCD_setContrast(0);
-		EnableInterrupts;
-		RTC_delay(1000);
-		
-		DisableInterrupts;
-		LCD_setContrast(1);
-		EnableInterrupts;
-		
-		RTC_delay(1000);
-	}
-	
-	
 		
 	while (1)
 	{	
