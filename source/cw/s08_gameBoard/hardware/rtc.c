@@ -20,7 +20,6 @@
 #include <stddef.h>
 #include "config.h"
 #include "rtc.h"
-#include "sound.h"
 
 //global time tick for delay function
 volatile unsigned long gTimeTick = 0x00;
@@ -100,7 +99,6 @@ unsigned long RTC_getTimeTick(void)
 /////////////////////////////////////////////
 //Delay in units of timebase for RTC interrupt
 //ie, For RTC configured to 1khz timeout, units in ms
-//
 void RTC_delay(unsigned int delay)
 {
 	volatile unsigned long temp = delay + gTimeTick;
@@ -121,11 +119,6 @@ void interrupt VectorNumber_Vrtc rtc_isr(void)
 {
 	RTCSC_RTIF = 1;			//clear the interrupt flag	
 	gTimeTick++;			//increment the time tick	
-	
-//	if ((gTimeTick % 100) == 0)
-//	{
-//		Sound_InterruptHandler();
-//	}
 }
 
 

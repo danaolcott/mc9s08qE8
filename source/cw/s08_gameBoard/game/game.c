@@ -22,35 +22,17 @@
 #include "pwm.h"
 
 //Game objects
-//Note: Enemy array should be declared as static or 
-//indeterminate behavior will result.  ie, declare 6
-//enemys and only 5 will get drawn.  Change the spacing
-//and only 4 will show up.  Chnage 8bit to 16bit x and y
-//coordinates, and also changes the result.  This is only
-//for the array objects.  The draw image function works fine
-//for any location on the screen.
-
-//static far - puts the array into .bss.
-//no static far  - puts the array into common
-//no static no far - puts it in common
-
+//Note: Declare as static and init to 0x00 to 
+//get compiler to put into .bss.  Otherwise, it
+//ends up in .common.  Erroneous results happen
+//when it ends up in .common.
 
 static PlayerStruct mPlayer = {0x00};
-
-//EnemyStruct mEnemy[GAME_ENEMY_NUM_ENEMY];		//0x84 - common
-//EnemyStruct far mEnemy[GAME_ENEMY_NUM_ENEMY];		//0x84 - common
-//static EnemyStruct far mEnemy[GAME_ENEMY_NUM_ENEMY];		//0x6C - bss
-//static EnemyStruct mEnemy[GAME_ENEMY_NUM_ENEMY];		//0x6C - bss
-
-static EnemyStruct mEnemy[GAME_ENEMY_NUM_ENEMY] = {0x00};		//0x6C - bss
-
+static EnemyStruct mEnemy[GAME_ENEMY_NUM_ENEMY] = {0x00};
 
 //Missile arrays, assume the player and the enemy each get 4
 static MissileStruct mPlayerMissile[GAME_MISSILE_NUM_MISSILE] = {0x00};
 static MissileStruct mEnemyMissile[GAME_MISSILE_NUM_MISSILE] = {0x00};
-
-//volatile uint16_t mGameScore = 0x00;
-//volatile uint8_t mGameLevel = 0x00;
 
 //flags
 volatile uint8_t mButtonFlag = 0x00;
@@ -63,17 +45,6 @@ volatile uint8_t mEnemyHitFlag = 0x00;
 static uint16_t mGameScore @ 0x240u;
 static uint8_t mGameLevel @ 0x242u;
 
-
-
-/////////////////////////////////////////
-//No interrupt delay function
-void Game_dummyDelay(unsigned int time)
-{
-	volatile unsigned int temp = time;
-	
-	while (temp > 0)
-		temp--;
-}
 
 void Game_init(void)
 {
@@ -571,7 +542,6 @@ void Game_missilePlayerLaunch(void)
 }
 
 
-
 ///////////////////////////////////////////
 //Launch missile from a random enemy
 void Game_missileEnemyLaunch(void)
@@ -697,11 +667,7 @@ uint8_t Game_scorePlayerHit(uint8_t missileIndex)
 	mEnemyMissile[missileIndex].alive = 0x00;
 	mEnemyMissile[missileIndex].x = 0x00;
 	mEnemyMissile[missileIndex].y = 0x00;
-	
-	GPIO_setRed();
-	Game_dummyDelay(8000);
-	GPIO_clearRed();
-		
+			
 	if (mPlayer.numLives > 1)
 		mPlayer.numLives--;		
 	
@@ -834,13 +800,13 @@ void Game_playExplosionPlayer(void)
 	EnableInterrupts;
 	
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP1);
-	RTC_delay(200);
+	RTC_delay(20);
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP2);
-	RTC_delay(200);
+	RTC_delay(20);
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP3);
-	RTC_delay(200);
+	RTC_delay(20);
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP4);
-	RTC_delay(200);
+	RTC_delay(20);
 }
 
 
@@ -861,26 +827,32 @@ void Game_playExplosionPlayer_withSound(void)
 	EnableInterrupts;
 	
 	PWM_setFrequency(200);
+	GPIO_setRed();
 	PWM_Enable();
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP1);
-	RTC_delay(200);
+	RTC_delay(20);
 
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP2);
+	GPIO_clearRed();
 	PWM_Disable();
-	RTC_delay(200);
+	RTC_delay(20);
 	
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP3);
 	PWM_setFrequency(300);
+	GPIO_setRed();
 	PWM_Enable();
-	RTC_delay(200);
+	RTC_delay(20);
 	
 	LCD_drawImagePage(LCD_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER_EXP4);
+	GPIO_clearRed();
 	PWM_Disable();
-	RTC_delay(200);
+	RTC_delay(20);
 	
 	PWM_setFrequency(200);
+	GPIO_setRed();
 	PWM_Enable();
-	RTC_delay(200);
+	RTC_delay(20);
+	GPIO_clearRed();
 	PWM_Disable();	
 }
 
@@ -899,10 +871,10 @@ void Game_playGameOver(void)
 	EnableInterrupts;
 	
 	//draw game over
-	LCD_drawString(2, 32, "Game");
-	LCD_drawString(3, 32, "Over");
-	LCD_drawString(5, 30, "Press");	
-	LCD_drawString(6, 26, "Button");
+	LCD_drawString(2, 34, "Game");
+	LCD_drawString(3, 34, "Over");
+	LCD_drawString(5, 31, "Press");	
+	LCD_drawString(6, 27, "Button");
 	
 	if (toggle == 1)
 	{

@@ -89,8 +89,6 @@ typedef struct
 
 ///////////////////////////////////////////
 //Prototypes
-void Game_dummyDelay(unsigned int time);
-
 void Game_init(void);
 void Game_playerInit(void);
 void Game_enemyInit(void);

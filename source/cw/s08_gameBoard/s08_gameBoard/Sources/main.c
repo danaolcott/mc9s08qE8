@@ -66,7 +66,7 @@ void System_init(void);
 //variables in main.
 static unsigned int gameLoopCounter = 0x00;
 uint8_t length = 0x00;
-static uint8_t far printBuffer[GAME_PRINT_BUFFER_SIZE] = {0x00};
+static char far printBuffer[GAME_PRINT_BUFFER_SIZE] = {0x00};
 
 
 void main(void) 
@@ -74,7 +74,7 @@ void main(void)
 	DisableInterrupts;			//disable interrupts
 	System_init();				//configure system level config bits
 	Clock_init();				//configure clock for external
-	RTC_init_internal(RTC_FREQ_1000HZ);	//use internal timer for 1000hz interrupt
+	RTC_init_internal(RTC_FREQ_100HZ);	//use internal timer for 100hz interrupt
 	
 	GPIO_init();				//IO
 	ADC_init();					//ADC Channel 1 - temp sensor
@@ -151,7 +151,7 @@ void main(void)
 				}
 
 				GPIO_toggleRed();
-				RTC_delay(500);				
+				RTC_delay(50);				
 			}
 		}
 		
@@ -168,18 +168,15 @@ void main(void)
 		Game_missileDraw();					//draw missiles
 		LCD_updateFrameBuffer();			//update the display
 		
-		//display the header info
+		//display the header info - score, level, num players
 		LCD_drawString(0, 0, "S:");
-		//draw the score, level, etc
-
-		length = LCD_decimalToBuffer(Game_getGameScore(), printBuffer, (uint8_t)GAME_PRINT_BUFFER_SIZE);
+		length = LCD_decimalToBuffer(Game_getGameScore(), printBuffer, GAME_PRINT_BUFFER_SIZE);
 		LCD_drawStringLength(0, 18, printBuffer, length);
 
 		LCD_drawString(0, 60, "L:");
-		length = LCD_decimalToBuffer(Game_getGameLevel(), printBuffer, (uint8_t)GAME_PRINT_BUFFER_SIZE);
+		length = LCD_decimalToBuffer(Game_getGameLevel(), printBuffer, GAME_PRINT_BUFFER_SIZE);
 		LCD_drawStringLength(0, 74, printBuffer, length);
 		
-		//display number of players as image
 		switch(Game_getNumPlayers())
 		{
 			case 3:	LCD_drawImagePage(0, 90, BITMAP_PLAYER_ICON3);	break;
@@ -187,11 +184,12 @@ void main(void)
 			case 1:	LCD_drawImagePage(0, 90, BITMAP_PLAYER_ICON1);	break;
 		}
 
+		//reenable interrupts
 		EnableInterrupts;
 
 		gameLoopCounter++;
-		GPIO_toggleGreen();
-		RTC_delay(100);		
+		GPIO_toggleGreen();	//170ms with RTC at 1000hz, 155ms at 100hz
+		RTC_delay(10);
 	}
 }
 
