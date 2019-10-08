@@ -35,6 +35,7 @@ void GPIO_init(void);
 
 void LED_Toggle_Red(void);
 void LED_Toggle_Green(void);
+void Board_LED_toggle(void);
 
 unsigned char tx[3] = {0xAA, 0xBB, 0xCE};
 
@@ -50,9 +51,9 @@ void main(void)
 	
 	while (1) 
 	{
-		LED_Toggle_Red();
-		RTC_delay(1000);		
-//		SPI_writeArray(tx, 3);
+		Board_LED_toggle();
+		RTC_delay(10);
+		SPI_writeArray(tx, 3);
 //		SPI_write(0xAA);
 	}
 }
@@ -79,6 +80,7 @@ void System_init(void)
 //PA0 - Keyboard interrupt, P0 - KBIP0
 //configured as falling edge trigger
 //
+//PA2 - led on dev board
 void GPIO_init(void)
 {	
 	//LEDs red and green as output
@@ -87,6 +89,10 @@ void GPIO_init(void)
 	
 	PTCD &=~ BIT0;
 	PTCD &=~ BIT1;
+	
+	PTADD |= BIT2;
+	PTAD &=~ BIT2;
+	
 	
 	
 	//////////////////////////////////////////////
@@ -128,6 +134,11 @@ void LED_Toggle_Green(void)
 	PTCD ^= BIT1;
 }
 
+
+void Board_LED_toggle(void)
+{
+	PTAD ^= BIT2;
+}
 
 
 //////////////////////////////////////////////////////////

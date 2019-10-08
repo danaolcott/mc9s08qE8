@@ -73,7 +73,7 @@ void SPI_select(void)
 
 void SPI_deselect(void)
 {
-	PTBD |= BIT5;	
+	PTBD |= BIT5;
 }
 
 /////////////////////////////////////////////

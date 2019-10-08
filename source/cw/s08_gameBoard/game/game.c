@@ -55,7 +55,7 @@ void Game_init(void)
 	mEnemyHitFlag = 0x00;
 	mGameScore = 0x00;
 	mGameLevel = 0x00;
-		
+
 	LCD_clear(0x00);			//clear screen
 	LCD_clearBackground(0xAA);	//margins
 

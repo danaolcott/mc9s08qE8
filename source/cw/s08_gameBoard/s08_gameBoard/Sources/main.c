@@ -155,7 +155,6 @@ void main(void)
 			}
 		}
 		
-
 		//move enemy and missile				
 		Game_enemyMove();					//move enemy
 		Game_missileMove();					//move all missiles
