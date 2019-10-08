@@ -35,7 +35,8 @@ extern unsigned char I2C_RX_DATA[16];			/* IIC Buffer */
 
 void I2C_init(void);
 
-void I2C_writeData(uint8_t address, uint8_t numBytes);
+uint8_t I2C_writeData(uint8_t address, uint8_t far* data, uint8_t numBytes);
+uint8_t I2C_readData(uint8_t address, uint8_t far* data, uint8_t numBytes);
 
 void I2C_interruptHandler(void);
 

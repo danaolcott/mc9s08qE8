@@ -35,6 +35,9 @@ void GPIO_init(void);
 //void LED_toggleOrange(void);
 
 uint8_t counter = 0x00;
+uint8_t tx[4] = {0x00};
+uint8_t status = 0x00;
+uint8_t rx[4] = {0x00};
 
 void main(void)
 {
@@ -53,16 +56,27 @@ void main(void)
 	while(1)
 	{
 		LED_toggleOrange();
-	
+
+		/*
 		//load the array
-		I2C_DATA[0] = 0x81;
-		I2C_DATA[1] = counter++;
-		I2C_DATA[2] = 0x81;		
-		I2C_writeData(I2C_ADDRESS, 3);
+		tx[0] = 0x81;
+		tx[1] = counter++;
+		tx[2] = 0x81;		
+		
+		status = I2C_writeData(I2C_ADDRESS, tx, 3);
+		
+		if (status == IIC_READY_STATUS)
+			LED_toggleBlue();
 		
 		//light sensor - command, data
 		//1110 0000  0x03 - 
-	
+	*/
+		status = I2C_readData(I2C_ADDRESS, rx, 2);
+
+		if (status == IIC_ERROR_STATUS)
+			LED_toggleBlue();
+
+		
 		RTC_delay(100);
 	}
 }

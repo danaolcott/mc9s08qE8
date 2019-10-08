@@ -20,8 +20,11 @@
 
 unsigned char I2C_STEP = IIC_READY_STATUS;
 unsigned char I2C_DATA_DIRECTION = 0;      /* 1 Transmit, 0 Read */
-unsigned char I2C_LENGTH = 1;
-unsigned char I2C_COUNTER = 0;
+unsigned char I2C_RX_LENGTH = 1;
+unsigned char I2C_RX_COUNTER = 0;
+
+unsigned char I2C_TX_LENGTH = 1;
+unsigned char I2C_TX_COUNTER = 0;
 
 unsigned char I2C_TX_DATA[16] = {0x00};
 unsigned char I2C_RX_DATA[16] = {0x00};
@@ -64,12 +67,16 @@ void I2C_init(void)
 //assumed to be in I2C_DATA
 //This follows along with the example i2c in the
 //peripheral guide
-void I2C_writeData(uint8_t address, uint8_t numBytes)
+uint8_t I2C_writeData(uint8_t address, uint8_t far* data, uint8_t numBytes)
 {	
 	uint8_t dummy = 0x00;
 	
-	I2C_LENGTH = numBytes;
-	I2C_COUNTER = 0x00;
+	//copy numBytes into I2C_TX_DATA
+	for (dummy = 0 ; dummy < numBytes ; dummy++)
+		I2C_TX_DATA[dummy] = data[dummy];
+	
+	I2C_TX_LENGTH = numBytes;
+	I2C_TX_COUNTER = 0x00;
 	I2C_STEP = IIC_HEADER_SENT_STATUS;
 	I2C_DATA_DIRECTION = 1;
 	
@@ -91,10 +98,58 @@ void I2C_writeData(uint8_t address, uint8_t numBytes)
 	
 	IICD = address;		//send the first byte - address
 	
-	return;
+	//wait until it returns either an error or a ready state
+	//Should add a counter here, a timeout, etc.
+	while (I2C_STEP > IIC_READY_STATUS){};
 	
+	return I2C_STEP;
+		
 }
 
+
+/////////////////////////////////////////////////////
+//Read numBytes into data array from address.  
+//Uses I2C_RX_DATA to read the data, then copies
+//it when returning if the status is ready
+uint8_t I2C_readData(uint8_t address, uint8_t far* data, uint8_t numBytes)
+{
+	uint8_t temp;
+	
+	I2C_RX_LENGTH = numBytes;	
+	I2C_RX_COUNTER = 0;
+	I2C_STEP = IIC_HEADER_SENT_STATUS;
+	I2C_DATA_DIRECTION = 0;				//receiver
+	
+	//set the address with bit 0 high
+	address &= 0xFE;
+	address |= 0x01;		//set as read
+	
+	temp = IICS;			//clear pending interrupts
+	IICS_IICIF = 1;
+	
+	IICC1_TXAK = 0x00;		//ack signal is sent after receiving one data byte
+	IICC_TX = 1;			//transmitter to send address but with add bit 0 high
+	IICC_MST = 1;			//generate start condition
+	
+	//wait a bit
+	for (temp = 0 ; temp < 5 ; temp++);
+	
+	//send the address
+	IICD = address;
+	
+	//wait until it returns either an error or a ready state
+	//Should add a counter here, a timeout, etc.
+	while (I2C_STEP > IIC_READY_STATUS){};
+	
+	if (I2C_STEP == IIC_READY_STATUS)
+	{
+		//copy the data from the rx buffer into data
+		for (temp = 0 ; temp < numBytes ; temp++)
+			data[temp] = I2C_RX_DATA[temp];
+	}
+	
+	return I2C_STEP;
+}
 
 
 void I2C_interruptHandler(void)
@@ -112,23 +167,62 @@ void I2C_interruptHandler(void)
 		return;     
 	}										       /* If Arbitration is OK continue */  
 
-	if(IICC_MST==1)
-	{          /* If we are the IIC Master */	
-		if(IICS_RXAK==1)
-		{      /* Verify if byte sent was ACK */
-			IICC_MST = 0;
-			I2C_STEP = IIC_ERROR_STATUS;	
+	if(IICC_MST==1)		
+	{
+		//if not ack and device is transmitter, return error
+		//previously, it was both rx and tx, which is not right
+		//for some i2c devices
+		if((IICS_RXAK==1) && (IICC1_TX == 1))
+		{
+			IICC_MST = 0;					//generate the stop condition
+			I2C_STEP = IIC_ERROR_STATUS;
 			return;
 		}
 	
+		//the address byte is sent, set the direction and
+		//update the status
 		if(I2C_STEP == IIC_HEADER_SENT_STATUS)
-		{ /* Header Sent */
-			IICC_TX = I2C_DATA_DIRECTION;
-			I2C_STEP = IIC_DATA_TRANSMISION_STATUS; 
-	
+		{
+			IICC_TX = I2C_DATA_DIRECTION;				//set the direction
+			I2C_STEP = IIC_DATA_TRANSMISION_STATUS; 	//update the status
+
+			//if rx, read the first byte, set the ack or nack
+			//depending on if more bytes to be read
 			if(IICC_TX==0)
-			{  /* If we are reading data clock in first slave byte */
-				Temp = IICD;
+			{
+				//read only 1 byte
+				if (I2C_RX_LENGTH == 1)
+				{
+					IICC_TXAK = 1;						//master drives ack bit high
+					I2C_RX_DATA[I2C_RX_COUNTER] = IICD;	//read the data into rx data				
+					I2C_RX_COUNTER++;					//increment the counter					
+					I2C_STEP=IIC_DATA_SENT_STATUS;		//update the status- - all data sent
+				}
+				
+				//read 2 or more bytes
+				else
+				{
+					//Uncomment this to set all receive bytes read by 
+					//master to set the ack bit high.  Otherwise, only
+					//the last byte received will have the ack bit set
+					//high by the master
+					
+					//IICC_TXAK = 1;						//master drives ack bit high
+					I2C_STEP = IIC_DATA_TRANSMISION_STATUS; 	//update the status
+					
+					//the next byte is the last one, master reciever
+					//sets the ack bit high
+					if((I2C_RX_COUNTER+1) == I2C_RX_LENGTH)
+						IICC_TXAK = 1;
+					
+					I2C_RX_DATA[I2C_RX_COUNTER] = IICD;		//read the data       	         	 
+					I2C_RX_COUNTER++;						//increment the counter
+
+					//update the status to complete
+					if(I2C_RX_LENGTH <= I2C_RX_COUNTER)
+						I2C_STEP=IIC_DATA_SENT_STATUS;
+				}
+				
 				return;
 			}
 		}
@@ -137,10 +231,10 @@ void I2C_interruptHandler(void)
 		{	 /* If byte transmision is in progress.*/
 			if(IICC_TX==1)
 			{				               /* If Master is sending data to slave */
-				IICD = I2C_DATA[I2C_COUNTER];	     /* Send the next byte */	
-				I2C_COUNTER++;
+				IICD = I2C_TX_DATA[I2C_TX_COUNTER];	     /* Send the next byte */	
+				I2C_TX_COUNTER++;
 				
-				if(I2C_LENGTH <= I2C_COUNTER)
+				if(I2C_TX_LENGTH <= I2C_TX_COUNTER)
 				{
 					I2C_STEP=IIC_DATA_SENT_STATUS;     /* Mark we are done sending Bytes */   	  
 				}
@@ -150,13 +244,13 @@ void I2C_interruptHandler(void)
 			
 			else
 			{										               /* If master is reading data from slave */	
-				if((I2C_COUNTER+1) == I2C_LENGTH)  /* Master should not ACK the last byte */
+				if((I2C_RX_COUNTER+1) == I2C_RX_LENGTH)  /* Master should not ACK the last byte */
 					IICC_TXAK = 1;							   /* to indicate end of transfer         */
 	
-				I2C_DATA[I2C_COUNTER] = IICD;	     /* Read the next byte */       	         	 
-				I2C_COUNTER++;
+				I2C_RX_DATA[I2C_RX_COUNTER] = IICD;	     /* Read the next byte */       	         	 
+				I2C_RX_COUNTER++;
 				 
-				if(I2C_LENGTH <= I2C_COUNTER)
+				if(I2C_RX_LENGTH <= I2C_RX_COUNTER)
 				{
 					I2C_STEP=IIC_DATA_SENT_STATUS;   /* Mark we are done sending Bytes */   	  
 				}
@@ -165,6 +259,8 @@ void I2C_interruptHandler(void)
 			}
 		}
 	
+		//data transmit / receive complete, return to ready
+		//status, generate the stop condition
 		if(I2C_STEP==IIC_DATA_SENT_STATUS)
 		{	       /* We are done with the transmition.*/ 	
 			I2C_STEP=IIC_READY_STATUS;	             /* Reset our status flag            */
@@ -179,16 +275,19 @@ void I2C_interruptHandler(void)
 		}
 	}
 	
-	
+
+	//slave state
 	else
-	{			 /*  SLAVE OPERATION  */  
+	{  
+		//first byte?
 		if(I2C_STEP <= IIC_READY_STATUS)
-		{	 				 /* If it is the first byte tranmited */
+		{
 			I2C_STEP = IIC_DATA_TRANSMISION_STATUS;
-			IICC_TX = IICS_SRW;				           /* Set the transmision reception status */
-			I2C_COUNTER = 1;
-		
-			/* If we are receiving data read IIC1D to get free bus and get the next byte */
+			//transmit reception status
+			IICC_TX = IICS_SRW;
+			I2C_TX_COUNTER = 1;
+
+			//if rx, read the data register
 			if(IICC_TX==0)
 			{
 				Temp = IICD;
@@ -199,28 +298,32 @@ void I2C_interruptHandler(void)
 		if(IICS_TCF==1)
 		{
 			if(IICC_TX == 0)
-			{	        /* If data is received store it on the buffer */              
-				I2C_DATA[I2C_COUNTER]=IICD;
-				I2C_COUNTER++;
+			{
+				//store read data into rx buffer              
+				I2C_RX_DATA[I2C_RX_COUNTER]=IICD;
+				I2C_RX_COUNTER++;
 				return;          
 			}
 			
+			//data sent by slave to master
 			else
-			{	                      /* Data sent by the slave */              		
-				if(IICS_RXAK==1)
-				{      /* If byte is not ACK end transmision. */
+			{
+				if(IICS_RXAK==1)					
+				{
+					//end transmission for nACK
 					IICC_TX = 0;
 					Temp = IICD;
 					I2C_STEP = IIC_READY_STATUS;
 					return;
 				}
 		
-				IICD = I2C_DATA[I2C_COUNTER];
-				I2C_COUNTER++;
+				IICD = I2C_TX_DATA[I2C_TX_COUNTER];
+				I2C_TX_COUNTER++;
 				return;          
 			}
-		}	
+		}		
 	}
+
 }
 
 
