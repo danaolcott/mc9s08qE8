@@ -35,9 +35,9 @@ void GPIO_init(void);
 //void LED_toggleOrange(void);
 
 uint8_t counter = 0x00;
-uint8_t tx[4] = {0x00};
 uint8_t status = 0x00;
-uint8_t rx[4] = {0x00};
+uint8_t tx[4] = {0x00};
+uint8_t rx[16] = {0x00};
 
 void main(void)
 {
@@ -71,12 +71,30 @@ void main(void)
 		//light sensor - command, data
 		//1110 0000  0x03 - 
 	*/
-		status = I2C_readData(I2C_ADDRESS, rx, 2);
+//		status = I2C_readData(I2C_ADDRESS, rx, 1);
+
+//		uint8_t I2C_writeReadData(uint8_t address, uint8_t far* txData, uint8_t txBytes, uint8_t far* rxData, uint8_t rxBytes)
+
+		
+		//try a block read starting at address 0
+		// 1101 0000 = 0xD0, 1
+		tx[0] = 0xAA;
+		
+		//single byte read at address 0x0A - returns 0x50
+		//1100 1010
+		tx[0] = 0x81;
+		tx[1] = 0xAA;
+		tx[2] = 0xAA;
+				
+		//TODO: Fix the counts...
+//		status = I2C_writeReadData(I2C_ADDRESS, tx, 1, rx, 7);
+//		status = I2C_memoryRead(I2C_ADDRESS, 0xCA, 1, rx, 1);
+		status = I2C_memoryWrite(I2C_ADDRESS, 0xCA, 1, tx, 1);
+		
 
 		if (status == IIC_ERROR_STATUS)
 			LED_toggleBlue();
 
-		
 		RTC_delay(100);
 	}
 }
