@@ -3,6 +3,12 @@
  *
  *  Created on: Sep 28, 2019
  *      Author: danao
+ *  
+ *  I2C Controller file for use on PA2 and PA3.  Configures
+ *  the peripheral for master mode, interrupt driven.  The 
+ *  approach and ISR generally follow along with the peripheral
+ *  guide.  The light sensor breakout board from Adafruit is used
+ *  to test the i2c.  The 7bit address is 0x39
  */
 
 #ifndef I2C_H_
@@ -13,19 +19,15 @@
 #include "derivative.h" /* include peripheral declarations */
 #include "config.h"
 
-//I2C Address for the light sensor with 
-//address pin floating, grounded, and high
-#define I2C_ADDRESS			(0x39 << 1)			//floating   00111001 -> 0111 0010
+//I2C Address for the light sensor
+#define I2C_ADDRESS			(0x39 << 1)
 
 #define IIC_ERROR_STATUS 0
 #define IIC_READY_STATUS 1
 #define IIC_HEADER_SENT_STATUS 2
 #define IIC_DATA_TRANSMISION_STATUS 3
 #define IIC_DATA_SENT_STATUS 4
-#define IIC_DATA_RESTART_STATUS	5
 
-extern unsigned char I2C_TX_DATA[16];			/* IIC Buffer */
-extern unsigned char I2C_RX_DATA[16];			/* IIC Buffer */
 
 void I2C_init(void);
 uint8_t I2C_writeData(uint8_t address, uint16_t data, uint8_t numBytes);

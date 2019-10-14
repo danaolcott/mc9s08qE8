@@ -78,18 +78,19 @@ void main(void)
 		
 		//try a block read starting at address 0
 		// 1101 0000 = 0xD0, 1
-		tx[0] = 0xAA;
+		tx[0] = 0xCA;
 		
 		//single byte read at address 0x0A - returns 0x50
 		//1100 1010
-		tx[0] = 0x81;
+//		tx[0] = 0x81;
 		tx[1] = 0xAA;
 		tx[2] = 0xAA;
 				
 		//TODO: Fix the counts...
 //		status = I2C_writeReadData(I2C_ADDRESS, tx, 1, rx, 7);
-//		status = I2C_memoryRead(I2C_ADDRESS, 0xCA, 1, rx, 1);
-		status = I2C_memoryWrite(I2C_ADDRESS, 0xCA, 1, tx, 1);
+		status = I2C_memoryRead(I2C_ADDRESS, 0xCA, 1, rx, 1);
+
+//		status = I2C_memoryWrite(I2C_ADDRESS, 0xCA, 1, tx, 1);
 		
 
 		if (status == IIC_ERROR_STATUS)

@@ -4,10 +4,11 @@
  *  Created on: Sep 28, 2019
  *      Author: danao
  *  
- *  I2C Controller file for use on PA2 and PA3.
- *  Configures the peripheral for master mode.
- *  
- *  light sensor i2c 7bit - 0x39
+ *  I2C Controller file for use on PA2 and PA3.  Configures
+ *  the peripheral for master mode, interrupt driven.  The 
+ *  approach and ISR generally follow along with the peripheral
+ *  guide.  The light sensor breakout board from Adafruit is used
+ *  to test the i2c.  The 7bit address is 0x39
  *  
  */
 
@@ -19,7 +20,7 @@
 #include "main.h"
 
 unsigned char I2C_STEP = IIC_READY_STATUS;
-unsigned char I2C_DATA_DIRECTION = 0;      /* 1 Transmit, 0 Read */
+unsigned char I2C_DATA_DIRECTION = 0;		//0 = read, 1 = write
 unsigned char I2C_RX_LENGTH = 1;
 unsigned char I2C_RX_COUNTER = 0;
 
@@ -32,7 +33,7 @@ unsigned char I2C_RX_DATA[16] = {0x00};
 unsigned char I2C_NO_STOP_FLAG = 0x00;
 unsigned char I2C_RESTART_FLAG = 0x00;
 
-///////////////////////////////////////
+///////////////////////////////////////////
 //Configure I2C on PA2 (SDA) and PA3 (SCL).
 void I2C_init(void)
 {
@@ -40,12 +41,11 @@ void I2C_init(void)
 	
 	IICC1_IICEN = 1;		//i2c enable
 	
-	//IICA - set the slave address - assume 0x50
-	IICA = I2C_ADDRESS;
+	IICA = I2C_ADDRESS;		//i2c slave address, not needed
 	
 	//IICF - set the baud rate
 	//From Table 12-4, use mult = 0x2 and ICR = 0x00
-	//
+	//for 100khz
 	IICF_MULT1 = 1;
 	IICF_MULT0 = 0;
 	
@@ -102,20 +102,20 @@ uint8_t I2C_writeData(uint8_t address, uint16_t data, uint8_t numBytes)
 	//wait a bit
 	for (dummy = 0 ; dummy < 5 ; dummy++);
 	
-	IICD = address;		//send the first byte - address
+	//send the first byte, starting the interrupt sequence
+	IICD = address;
 	
 	//wait until it returns either an error or a ready state
-	//Should add a counter here, a timeout, etc.
 	while (I2C_STEP > IIC_READY_STATUS){};
 	
 	return I2C_STEP;			
 }
 
 //////////////////////////////////////////////////
-//Send num bytes over the i2c.  byte data is
-//assumed to be in I2C_DATA
-//This follows along with the example i2c in the
-//peripheral guide
+//Send numBytes over the i2c.  Contents of data array
+//are copied into I2C_TX_DATA and sent over i2c.
+//The approach follows along with the peripheral guide
+//
 uint8_t I2C_writeDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes)
 {	
 	uint8_t dummy = 0x00;
@@ -144,16 +144,14 @@ uint8_t I2C_writeDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes)
 	
 	//wait a bit
 	for (dummy = 0 ; dummy < 5 ; dummy++);
-	
-	IICD = address;		//send the first byte - address
 
-		
+	//start the transmission and the interrupt sequence.
+	IICD = address;
+
 	//wait until it returns either an error or a ready state
-	//Should add a counter here, a timeout, etc.
 	while (I2C_STEP > IIC_READY_STATUS){};
 	
-	return I2C_STEP;
-		
+	return I2C_STEP;		
 }
 
 
@@ -198,9 +196,9 @@ uint8_t I2C_readDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes)
 	IICD = address;
 	
 	//wait until it returns either an error or a ready state
-	//Should add a counter here, a timeout, etc.
 	while (I2C_STEP > IIC_READY_STATUS){};
-	
+
+	//copy the data if it's valid and no errors
 	if (I2C_STEP == IIC_READY_STATUS)
 	{
 		//copy the data from the rx buffer into data
@@ -215,7 +213,7 @@ uint8_t I2C_readDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes)
 
 
 
-/////////////////////////////////////////////
+//////////////////////////////////////////////////////
 //I2C_writeReadData - 
 //write txBytes of txData to address, generate 
 //a restart condition, then read rxBytes into rxData
@@ -250,7 +248,7 @@ uint8_t I2C_writeReadData(uint8_t address, uint8_t far* txData, uint8_t txBytes,
 }
 
 
-////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
 //I2C_memoryRead
 //Reads data from I2C at a memory address. 
 //Sends addressSize bytes as a write to address, generates
@@ -297,8 +295,7 @@ uint8_t I2C_memoryRead(uint8_t address, uint16_t memoryAddress, uint8_t addressS
 //either 1 or 2 bytes.  Returns the status of the I2C
 //Similar to a write array, but copy the memory address
 //bytes into the array. 
-//I2C_TX_DATA size has to be at least 2 bytes bigger than the
-//input data array
+//
 uint8_t I2C_memoryWrite(uint8_t address, uint16_t memoryAddress, uint8_t addressSize, uint8_t far* data, uint8_t bytes)
 {
 	uint8_t dummy = 0x00;
@@ -342,7 +339,6 @@ uint8_t I2C_memoryWrite(uint8_t address, uint16_t memoryAddress, uint8_t address
 	
 	IICD = address;		//send the first byte - address
 
-		
 	//wait until it returns either an error or a ready state
 	//Should add a counter here, a timeout, etc.
 	while (I2C_STEP > IIC_READY_STATUS){};
@@ -354,20 +350,26 @@ uint8_t I2C_memoryWrite(uint8_t address, uint16_t memoryAddress, uint8_t address
 
 
 
+///////////////////////////////////////////////
+//I2C Interrupt Service Routine
+//Master mode transmitter and receiver
+//The ISR generally follows the peripheral guide.
+//
 void I2C_interruptHandler(void)
 {
-	unsigned char Temp;
+	unsigned char temp;
 
-	Temp = IICS;              /* ACK the interrupt */
+	temp = IICS;						//clear the interrupt flag
 	IICS_IICIF = 1;
-	 
+	
+	//Interrupt Source - Arbitration Lost	 
 	if(IICS_ARBL==1)
-	{         /* Verify the Arbitration lost status */	     
-		IICS_ARBL= 1;
-		IICC_MST = 0;	
-		I2C_STEP = IIC_ERROR_STATUS;
-		return;     
-	}										       /* If Arbitration is OK continue */  
+	{
+		IICS_ARBL= 1;					//clear the flag
+		IICC_MST = 0;					//generate the stop condition
+		I2C_STEP = IIC_ERROR_STATUS;	//update the status
+		return;
+	}
 
 	if(IICC_MST==1)		
 	{
@@ -377,7 +379,7 @@ void I2C_interruptHandler(void)
 		if((IICS_RXAK==1) && (IICC1_TX == 1))
 		{
 			IICC_MST = 0;					//generate the stop condition
-			I2C_STEP = IIC_ERROR_STATUS;
+			I2C_STEP = IIC_ERROR_STATUS;	//update the status
 			return;
 		}
 
@@ -388,17 +390,14 @@ void I2C_interruptHandler(void)
 		{
 			IICC_TX = I2C_DATA_DIRECTION;				//set the direction
 			I2C_STEP = IIC_DATA_TRANSMISION_STATUS; 	//update the status
-			
-			//dont return, continue based on status and direction
 		}
 
 		//////////////////////////////////////////////////////
-		//I2C Status - Transmission Status
+		//I2C Status - Transmission Status - Data is being sent
 		//Master is a transmitter or a receiver
-	
+		//
 		if(I2C_STEP == IIC_DATA_TRANSMISION_STATUS)
-		{	 /* If byte transmision is in progress.*/
-			
+		{
 			///////////////////////////////////////
 			//Transmitter
 			if(IICC_TX==1)
@@ -422,7 +421,7 @@ void I2C_interruptHandler(void)
 			//The ack bit is pulled low by the master receiver
 			//for all bytes except the last one.
 			else
-			{										               /* If master is reading data from slave */	
+			{
 				//read only 1 byte
 				if (I2C_RX_LENGTH == 1)
 				{
@@ -440,10 +439,10 @@ void I2C_interruptHandler(void)
 					//the last byte received will have the ack bit set
 					//high by the master
 					
-					//IICC_TXAK = 1;						//master drives ack bit high
+					//IICC_TXAK = 1;							//master drives ack bit high
 					I2C_STEP = IIC_DATA_TRANSMISION_STATUS; 	//update the status
 					
-					//the next byte is the last one, master reciever
+					//the next byte is the last one, master receiver
 					//sets the ack bit high
 					if((I2C_RX_COUNTER+1) == I2C_RX_LENGTH)
 						IICC_TXAK = 1;
@@ -456,77 +455,29 @@ void I2C_interruptHandler(void)
 						I2C_STEP=IIC_DATA_SENT_STATUS;
 				}
 				
-				return;           	    					 /* Return until next byte is read */
+				return;
 			}
 		}
 	
-		//data transmit / receive complete, return to ready
-		//status, generate the stop condition
+		///////////////////////////////////////////////////
+		//I2C Status - Tx / Rx complete, return to ready state
+		//Generate the stop condition
 		if(I2C_STEP==IIC_DATA_SENT_STATUS)
-		{	       /* We are done with the transmition.*/ 	
-			I2C_STEP=IIC_READY_STATUS;	             /* Reset our status flag            */
-			Temp = IICS;                            /* ACK the interrupt                */
+		{
+			I2C_STEP=IIC_READY_STATUS;		//I2C Ready state
+			temp = IICS;					//Clear the interrupt
 			IICS_IICIF=1;
 	
 			IICC_TX=0;
 			IICS_SRW=0;
 			
+			//generate the stop condition if the flag is not set
 			if (I2C_NO_STOP_FLAG == 0)		
 				IICC_MST=0;
-			   /* Generate a stop condition        */        	  
+			
 			return;
 		}		
-	}
-	
-
-	//slave state
-	else
-	{  
-		//first byte?
-		if(I2C_STEP <= IIC_READY_STATUS)
-		{
-			I2C_STEP = IIC_DATA_TRANSMISION_STATUS;
-			//transmit reception status
-			IICC_TX = IICS_SRW;
-			I2C_TX_COUNTER = 1;
-
-			//if rx, read the data register
-			if(IICC_TX==0)
-			{
-				Temp = IICD;
-				return;
-			}
-		}
-		
-		if(IICS_TCF==1)
-		{
-			if(IICC_TX == 0)
-			{
-				//store read data into rx buffer              
-				I2C_RX_DATA[I2C_RX_COUNTER]=IICD;
-				I2C_RX_COUNTER++;
-				return;          
-			}
-			
-			//data sent by slave to master
-			else
-			{
-				if(IICS_RXAK==1)					
-				{
-					//end transmission for nACK
-					IICC_TX = 0;
-					Temp = IICD;
-					I2C_STEP = IIC_READY_STATUS;
-					return;
-				}
-		
-				IICD = I2C_TX_DATA[I2C_TX_COUNTER];
-				I2C_TX_COUNTER++;
-				return;          
-			}
-		}		
-	}
-
+	}	
 }
 
 
