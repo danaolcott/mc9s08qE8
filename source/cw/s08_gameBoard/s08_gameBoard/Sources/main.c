@@ -54,6 +54,7 @@
 #include "clock.h"
 #include "gpio.h"
 #include "spi.h"
+#include "i2c.h"
 #include "adc.h"
 #include "pwm.h"
 #include "lcd.h"
@@ -80,6 +81,7 @@ void main(void)
 	ADC_init();					//ADC Channel 1 - temp sensor
 	PWM_init(1000);				//PWM output on PC0
 	SPI_init();					//configure the SPI
+	I2C_init();					//configure i2c on PA2 and PA3
 	LCD_init();					//configure the LCD	
 	Game_init();				//initialize the game
 	Sound_init();

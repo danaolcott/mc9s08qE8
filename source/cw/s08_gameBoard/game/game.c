@@ -45,7 +45,15 @@ volatile uint8_t mEnemyHitFlag = 0x00;
 static uint16_t mGameScore @ 0x240u;
 static uint8_t mGameLevel @ 0x242u;
 
-
+//NOTE:
+//0x242 is the last pre-determined address
+//so, should be able to put data starting at 
+//0x243u
+//
+//From the datasheet...0x25F is the last address
+//That's 12 + 16, 28 bytes to play with
+//Let's make i2c buffers 8 bytes each
+//
 void Game_init(void)
 {
 	//reset the score, flags, etc
