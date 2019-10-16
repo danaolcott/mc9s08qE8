@@ -185,7 +185,15 @@ void LCD_clear(uint8_t value)
 }
 
 
-
+void LCD_clearPage(uint8_t page, uint8_t value)
+{
+	uint8_t i = 0x00;
+	LCD_setColumn(0);
+	LCD_setPage(page);
+	
+	for (i = 0 ; i < LCD_WIDTH ; i++)
+			LCD_writeData(value);	
+}
 
 //////////////////////////////////////////////
 //Clears the framebuffer memory and updates

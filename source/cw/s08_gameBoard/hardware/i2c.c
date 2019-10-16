@@ -31,8 +31,11 @@ unsigned char I2C_TX_COUNTER = 0;
 //0x243.  Set the buffers at 8 bytes each
 //Last address = 0x25F
 //
-static unsigned char I2C_TX_DATA[8] @ 0x244u;
-static unsigned char I2C_RX_DATA[8] @ 0x24Cu;
+//static unsigned char I2C_TX_DATA[8] @ 0x244u;
+//static unsigned char I2C_RX_DATA[8] @ 0x24Cu;
+
+volatile unsigned char I2C_TX_DATA[4] = {0x00};
+volatile unsigned char I2C_RX_DATA[4] = {0x00};
 
 unsigned char I2C_NO_STOP_FLAG = 0x00;
 unsigned char I2C_RESTART_FLAG = 0x00;
@@ -65,26 +68,15 @@ void I2C_init(void)
 }
 
 
-///////////////////////////////////////////////////////
-//Write data to I2C address.  numBytes is the size of the
-//data, either 1 or 2 bytes. Sends the MSB first
-//Returns the status of the I2C.  
-uint8_t I2C_writeData(uint8_t address, uint16_t data, uint8_t numBytes)
+
+//////////////////////////////////////////////
+//Write 1 byte to i2c address
+uint8_t I2C_write1Byte(uint8_t address, uint8_t data0)
 {
 	uint8_t dummy = 0x00;
 	
-	if ((numBytes > 2) || (numBytes == 0))
-		return IIC_ERROR_STATUS;
-
-	if (numBytes == 1)
-		I2C_TX_DATA[0] = data & 0xFF;
-	else if (numBytes == 2)
-	{
-		I2C_TX_DATA[0] = (data >> 8) & 0xFF;
-		I2C_TX_DATA[1] = data & 0xFF;		
-	}
-	
-	I2C_TX_LENGTH = numBytes;
+	I2C_TX_DATA[0] = data0;
+	I2C_TX_LENGTH = 1;
 	I2C_TX_COUNTER = 0x00;
 	I2C_STEP = IIC_HEADER_SENT_STATUS;
 	I2C_DATA_DIRECTION = 1;
@@ -111,8 +103,102 @@ uint8_t I2C_writeData(uint8_t address, uint16_t data, uint8_t numBytes)
 	//wait until it returns either an error or a ready state
 	while (I2C_STEP > IIC_READY_STATUS){};
 	
-	return I2C_STEP;			
+	return I2C_STEP;	
 }
+
+
+uint8_t I2C_write2Bytes(uint8_t address, uint8_t data0, uint8_t data1)
+{
+	uint8_t dummy = 0x00;
+	
+	I2C_TX_DATA[0] = data0;
+	I2C_TX_DATA[1] = data1;
+	
+	I2C_TX_LENGTH = 2;
+	I2C_TX_COUNTER = 0x00;
+	I2C_STEP = IIC_HEADER_SENT_STATUS;
+	I2C_DATA_DIRECTION = 1;
+
+	address &= 0xFE;		//clear bit 0 for write
+
+	IICC_IICEN = 0;
+	IICC_IICEN = 1;
+	
+	dummy = IICS;		//clear any interrupt	
+	IICS_IICIF = 1;
+	
+	IICC_MST = 0;		//slave
+	IICS_SRW = 0;
+	IICC_TX = 1;		//transmitter
+	IICC_MST = 1;		//generate start condition
+
+	//wait a bit
+	for (dummy = 0 ; dummy < 5 ; dummy++);
+	
+	//send the first byte, starting the interrupt sequence
+	IICD = address;
+	
+	//wait until it returns either an error or a ready state
+	while (I2C_STEP > IIC_READY_STATUS){};
+	
+	return I2C_STEP;
+}
+
+
+
+///////////////////////////////////////////////////////
+//Read 1 byte from i2c address and returns the result
+//
+uint8_t I2C_readDataByte(uint8_t address)
+{
+	uint8_t result = 0x00;
+	uint8_t temp = 0x00;
+	
+	I2C_RX_LENGTH = 1;
+	I2C_RX_COUNTER = 0;
+	I2C_STEP = IIC_HEADER_SENT_STATUS;
+	I2C_DATA_DIRECTION = 0;				//receiver
+	
+	//set the address with bit 0 high
+	address &= 0xFE;
+	address |= 0x01;		//set as read
+	
+	temp = IICS;			//clear pending interrupts
+	IICS_IICIF = 1;
+	
+	IICC1_TXAK = 0x00;		//ack signal is sent after receiving one data byte
+	IICC_TX = 1;			//transmitter to send address but with add bit 0 high
+	
+	//generate the start or a restart
+	if (I2C_RESTART_FLAG == 1)
+	{
+		I2C_RESTART_FLAG = 0;		//clear the flag
+		IICC_RSTA = 1;				//generate the restart
+	}
+	else
+	{
+		IICC_MST = 1;			//generate start condition		
+	}
+	
+	//wait a bit
+	for (temp = 0 ; temp < 5 ; temp++);
+	
+	//send the address
+	IICD = address;
+	
+	//wait until it returns either an error or a ready state
+	while (I2C_STEP > IIC_READY_STATUS){};
+
+	//copy the data if it's valid and no errors
+	if (I2C_STEP == IIC_READY_STATUS)
+	{
+		IICC_TX = 1;				//set as transmitter - avoid a new read
+		result = IICD;				//read the contents of the register
+	}
+		
+	return result;
+}
+
 
 //////////////////////////////////////////////////
 //Send numBytes over the i2c.  Contents of data array
@@ -216,58 +302,22 @@ uint8_t I2C_readDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes)
 
 
 
-//////////////////////////////////////////////////////
-//I2C_writeReadData - 
-//write txBytes of txData to address, generate 
-//a restart condition, then read rxBytes into rxData
-//return the status.  Two flags are used to indicate
-//no stop condition after completing the write, and 
-//generate a restart prior to reading.
-//
-uint8_t I2C_writeReadData(uint8_t address, uint8_t far* txData, uint8_t txBytes, uint8_t far* rxData, uint8_t rxBytes)
-{
-	uint8_t status = 0x00;					//status of the i2c transfer
-
-	//no stop condition generated after completing write cycle
-	I2C_NO_STOP_FLAG = 1;
-
-	//write step - waits until all tx bytes are complete
-	status = I2C_writeDataArray(address, txData, txBytes);
-	
-	//clear the no stop flag
-	I2C_NO_STOP_FLAG = 0;
-	
-	//generate a restart in the read segment
-	I2C_RESTART_FLAG = 1;
-
-	//read step - waits until all rx bytes are complete
-	status = I2C_readDataArray(address, rxData, rxBytes);
-
-	//clear the flags
-	I2C_RESTART_FLAG = 0;
-	I2C_NO_STOP_FLAG = 0;
-	
-	return status;
-}
-
-
 ///////////////////////////////////////////////////////////
 //I2C_memoryRead
 //Reads data from I2C at a memory address. 
-//Sends addressSize bytes as a write to address, generates
-//a restart condition, then reads rxBytes into rxData array
-//Memory address is sent to the I2C MSB first.  Memory
-//address size can be either 1 or 2 bytes.  Returns the
-//status of the I2C
-uint8_t I2C_memoryRead(uint8_t address, uint16_t memoryAddress, uint8_t addressSize, uint8_t far* data, uint8_t bytes)
+//Memory address is one byte.
+//Sends 1 byte address as a write, a restart, reads rxBytes
+//into rxData array.  Returns the status of the I2C
+uint8_t I2C_memoryRead(uint8_t address, uint8_t memoryAddress)
 {
 	uint8_t status = 0x00;					//status of the i2c transfer
+	uint8_t result = 0x00;
 
 	//no stop condition generated after completing write cycle
 	I2C_NO_STOP_FLAG = 1;
 
 	//write step - waits until all tx bytes are complete
-	status = I2C_writeData(address, memoryAddress, addressSize);
+	status = I2C_write1Byte(address, memoryAddress);
 
 	if (status == IIC_ERROR_STATUS)
 		return status;
@@ -277,15 +327,15 @@ uint8_t I2C_memoryRead(uint8_t address, uint16_t memoryAddress, uint8_t addressS
 	
 	//generate a restart in the read segment
 	I2C_RESTART_FLAG = 1;
-
+	
 	//read step - waits until all rx bytes are complete
-	status = I2C_readDataArray(address, data, bytes);
+	result = I2C_readDataByte(address);
 
 	//clear the flags
 	I2C_RESTART_FLAG = 0;
 	I2C_NO_STOP_FLAG = 0;
 	
-	return status;	
+	return result;
 }
 
 
@@ -299,27 +349,19 @@ uint8_t I2C_memoryRead(uint8_t address, uint16_t memoryAddress, uint8_t addressS
 //Similar to a write array, but copy the memory address
 //bytes into the array. 
 //
-uint8_t I2C_memoryWrite(uint8_t address, uint16_t memoryAddress, uint8_t addressSize, uint8_t far* data, uint8_t bytes)
+uint8_t I2C_memoryWrite(uint8_t address, uint8_t memoryAddress, uint8_t far* data, uint8_t bytes)
 {
 	uint8_t dummy = 0x00;
 	uint8_t count = 0x00;
-	
-	//copy the memoryAddress bytes into I2C_TX_DATA
-	if (addressSize == 1)
-	{
-		I2C_TX_DATA[count++] = (memoryAddress & 0xFF);
-	}
-	else if (addressSize == 2)
-	{
-		I2C_TX_DATA[count++] = (memoryAddress >> 8) & 0xFF;
-		I2C_TX_DATA[count++] = (memoryAddress & 0xFF);
-	}
+
+	//copy the target address
+	I2C_TX_DATA[0] = (memoryAddress);
 	
 	//copy the data bytes into I2C_TX_DATA
 	for (dummy = 0 ; dummy < bytes ; dummy++)
-		I2C_TX_DATA[count++] = data[dummy];
+		I2C_TX_DATA[dummy + 1] = data[dummy];
 	
-	I2C_TX_LENGTH = (bytes + addressSize);
+	I2C_TX_LENGTH = (bytes + 1);
 	I2C_TX_COUNTER = 0x00;
 	I2C_STEP = IIC_HEADER_SENT_STATUS;
 	I2C_DATA_DIRECTION = 1;
@@ -419,10 +461,17 @@ void I2C_interruptHandler(void)
 				return;
 			}
 
-			///////////////////////////////////////////////////
+			//////////////////////////////////////////////////////////
 			//Receiver - master reads data from the slave.
 			//The ack bit is pulled low by the master receiver
-			//for all bytes except the last one.
+			//for all bytes except the last one.  Note: reading the IICD
+			//register initiates the read cycle.  it appears to contain the
+			//previous read byte when 2 or more bytes are read.  If you want 
+			//to read the IICD without generating a read, you need to flip 
+			//the IICC_TX bit high to put into write mode, read the register,
+			//then flip it back. The scope will show the correct values are being
+			//read back, but the data is not available until the next read.
+			//
 			else
 			{
 				//read only 1 byte

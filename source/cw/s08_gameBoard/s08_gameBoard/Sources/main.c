@@ -55,6 +55,7 @@
 #include "gpio.h"
 #include "spi.h"
 #include "i2c.h"
+#include "eeprom.h"
 #include "adc.h"
 #include "pwm.h"
 #include "lcd.h"
@@ -68,6 +69,9 @@ void System_init(void);
 static unsigned int gameLoopCounter = 0x00;
 uint8_t length = 0x00;
 static char far printBuffer[GAME_PRINT_BUFFER_SIZE] = {0x00};
+uint8_t counter = 0x00;
+uint8_t value = 0x00;
+uint8_t i = 0x00;
 
 
 void main(void) 
@@ -82,11 +86,81 @@ void main(void)
 	PWM_init(1000);				//PWM output on PC0
 	SPI_init();					//configure the SPI
 	I2C_init();					//configure i2c on PA2 and PA3
+	EEPROM_init();				//init the memory ic
 	LCD_init();					//configure the LCD	
 	Game_init();				//initialize the game
 	Sound_init();
 	EnableInterrupts;			//enable interrupts
+	
+	//eeprom test
+	while(1)
+	{
+		//write value to address
+		//EEPROM_writeByte(counter, counter);
 		
+		RTC_delay(10);
+		
+		//TODO: Fix the read.  Its returning the read
+		//address, not the value in memory.  ie,
+		//the memory i2c address is (0x50 << 1) with LSB high, for 0xA1
+		//it's returning 161 (0xA1)
+		
+		//read it back
+		value = EEPROM_readByte(counter);
+		
+		//write value and counter to display
+		LCD_clearPage(0, 0);
+		LCD_clearPage(1, 0);
+		LCD_clearPage(2, 0);
+		LCD_clearPage(3, 0);
+		
+		
+		//print the value on the lcd
+		LCD_drawString(0, 0, "C:");
+		length = LCD_decimalToBuffer(counter, printBuffer, GAME_PRINT_BUFFER_SIZE);
+		LCD_drawStringLength(0, 14, printBuffer, length);
+		
+		LCD_drawString(1, 0, "V:");
+		length = LCD_decimalToBuffer(value, printBuffer, GAME_PRINT_BUFFER_SIZE);
+		LCD_drawStringLength(1, 14, printBuffer, length);
+		
+		LCD_drawString(2, 0, "Rx0:");
+		length = LCD_decimalToBuffer(I2C_RX_DATA[0], printBuffer, GAME_PRINT_BUFFER_SIZE);
+		LCD_drawStringLength(2, 32, printBuffer, length);
+
+		LCD_drawString(3, 0, "Rx1:");
+		length = LCD_decimalToBuffer(I2C_RX_DATA[1], printBuffer, GAME_PRINT_BUFFER_SIZE);
+		LCD_drawStringLength(3, 32, printBuffer, length);
+
+		
+		
+		if (value == counter)
+		{
+			GPIO_setGreen();
+			GPIO_clearRed();
+		}
+
+		else
+		{
+			GPIO_setRed();
+			GPIO_clearGreen();			
+		}
+		
+		if (counter < 127)
+			counter++;
+		else
+			counter = 0;
+		
+		RTC_delay(10);
+		
+		GPIO_clearGreen();
+		GPIO_clearRed();
+
+		RTC_delay(10);
+						
+	}
+		
+	/*
 	while (1)
 	{	
 		//check for player move - move left
@@ -192,6 +266,9 @@ void main(void)
 		GPIO_toggleGreen();	//170ms with RTC at 1000hz, 155ms at 100hz
 		RTC_delay(10);
 	}
+	
+	*/
+	
 }
 
 

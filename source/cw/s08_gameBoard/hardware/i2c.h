@@ -28,13 +28,21 @@
 #define IIC_DATA_TRANSMISION_STATUS 3
 #define IIC_DATA_SENT_STATUS 4
 
+extern volatile unsigned char I2C_TX_DATA[4];
+extern volatile unsigned char I2C_RX_DATA[4];
+
+
 void I2C_init(void);
-uint8_t I2C_writeData(uint8_t address, uint16_t data, uint8_t numBytes);
+
+uint8_t I2C_write1Byte(uint8_t address, uint8_t data0);
+uint8_t I2C_write2Bytes(uint8_t address, uint8_t data0, uint8_t data1);
+uint8_t I2C_readDataByte(uint8_t address, uint8_t* data);
+
 uint8_t I2C_writeDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes);
 uint8_t I2C_readDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes);
-uint8_t I2C_writeReadData(uint8_t address, uint8_t far* txData, uint8_t txBytes, uint8_t far* rxData, uint8_t rxBytes);
-uint8_t I2C_memoryRead(uint8_t address, uint16_t memoryAddress, uint8_t addressSize, uint8_t far* data, uint8_t bytes);
-uint8_t I2C_memoryWrite(uint8_t address, uint16_t memoryAddress, uint8_t addressSize, uint8_t far* data, uint8_t bytes);
+
+uint8_t I2C_memoryRead(uint8_t address, uint8_t memoryAddress);
+uint8_t I2C_memoryWrite(uint8_t address, uint8_t memoryAddress, uint8_t data);
 
 void I2C_interruptHandler(void);
 

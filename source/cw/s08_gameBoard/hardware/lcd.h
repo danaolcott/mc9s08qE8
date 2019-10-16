@@ -77,6 +77,7 @@ void LCD_setPage(uint8_t page);
 void LCD_setColumn(uint8_t column);
 
 void LCD_clear(uint8_t value);
+void LCD_clearPage(uint8_t page, uint8_t value);
 void LCD_clearFrameBuffer(uint8_t value, uint8_t update);
 void LCD_clearPlayerPage(uint8_t value);
 void LCD_clearScorePage(uint8_t value);
