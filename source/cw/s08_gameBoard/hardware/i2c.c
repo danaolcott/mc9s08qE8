@@ -188,12 +188,11 @@ uint8_t I2C_readDataByte(uint8_t address)
 	
 	//wait until it returns either an error or a ready state
 	while (I2C_STEP > IIC_READY_STATUS){};
-
-	//copy the data if it's valid and no errors
+	
+	//result is in I2C_RX_DATA[1]
 	if (I2C_STEP == IIC_READY_STATUS)
 	{
-		IICC_TX = 1;				//set as transmitter - avoid a new read
-		result = IICD;				//read the contents of the register
+		result = I2C_RX_DATA[1];
 	}
 		
 	return result;
@@ -349,19 +348,15 @@ uint8_t I2C_memoryRead(uint8_t address, uint8_t memoryAddress)
 //Similar to a write array, but copy the memory address
 //bytes into the array. 
 //
-uint8_t I2C_memoryWrite(uint8_t address, uint8_t memoryAddress, uint8_t far* data, uint8_t bytes)
+uint8_t I2C_memoryWrite(uint8_t address, uint8_t memoryAddress, uint8_t data)
 {
 	uint8_t dummy = 0x00;
-	uint8_t count = 0x00;
 
 	//copy the target address
-	I2C_TX_DATA[0] = (memoryAddress);
-	
-	//copy the data bytes into I2C_TX_DATA
-	for (dummy = 0 ; dummy < bytes ; dummy++)
-		I2C_TX_DATA[dummy + 1] = data[dummy];
-	
-	I2C_TX_LENGTH = (bytes + 1);
+	I2C_TX_DATA[0] = memoryAddress;
+	I2C_TX_DATA[1] = data;
+		
+	I2C_TX_LENGTH = 2;
 	I2C_TX_COUNTER = 0x00;
 	I2C_STEP = IIC_HEADER_SENT_STATUS;
 	I2C_DATA_DIRECTION = 1;
@@ -395,10 +390,17 @@ uint8_t I2C_memoryWrite(uint8_t address, uint8_t memoryAddress, uint8_t far* dat
 
 
 
-///////////////////////////////////////////////
+////////////////////////////////////////////////////
 //I2C Interrupt Service Routine
 //Master mode transmitter and receiver
 //The ISR generally follows the peripheral guide.
+//
+//Note on Master Receiver:
+//IICD register reads generate the read cycle, but
+//the data is available to read on the following cycle.
+//To get the last byte out of the I2C_RX_DATA array, 
+//a final read occurs on the stop condition phase with
+//the IICC_TX bit set high to avoid another read cycle.
 //
 void I2C_interruptHandler(void)
 {
@@ -461,16 +463,17 @@ void I2C_interruptHandler(void)
 				return;
 			}
 
-			//////////////////////////////////////////////////////////
+			///////////////////////////////////////////////////////////////
 			//Receiver - master reads data from the slave.
 			//The ack bit is pulled low by the master receiver
 			//for all bytes except the last one.  Note: reading the IICD
-			//register initiates the read cycle.  it appears to contain the
-			//previous read byte when 2 or more bytes are read.  If you want 
-			//to read the IICD without generating a read, you need to flip 
-			//the IICC_TX bit high to put into write mode, read the register,
+			//register initiates the read cycle and stores the previous byte
+			//read.  If you want to read the IICD without generating a read,
+			//flip the IICC_TX bit high to put into write mode, read the register,
 			//then flip it back. The scope will show the correct values are being
-			//read back, but the data is not available until the next read.
+			//read back, but the data is not available until the next read.  This
+			//puts the I2C_RX_DATA result array off by 1, the last byte read during
+			//the stop condition phase of the transfer.
 			//
 			else
 			{
@@ -478,6 +481,9 @@ void I2C_interruptHandler(void)
 				if (I2C_RX_LENGTH == 1)
 				{
 					IICC_TXAK = 1;						//master drives ack bit high
+					
+					//for one byte, this will read back the address 
+					//read this again on the final step with tx bit high
 					I2C_RX_DATA[I2C_RX_COUNTER] = IICD;	//read the data into rx data				
 					I2C_RX_COUNTER++;					//increment the counter					
 					I2C_STEP=IIC_DATA_SENT_STATUS;		//update the status- - all data sent
@@ -498,8 +504,8 @@ void I2C_interruptHandler(void)
 					//sets the ack bit high
 					if((I2C_RX_COUNTER+1) == I2C_RX_LENGTH)
 						IICC_TXAK = 1;
-					
-					I2C_RX_DATA[I2C_RX_COUNTER] = IICD;		//read the data       	         	 
+				
+					I2C_RX_DATA[I2C_RX_COUNTER] = IICD;		//read the data					
 					I2C_RX_COUNTER++;						//increment the counter
 
 					//update the status to complete
@@ -519,13 +525,22 @@ void I2C_interruptHandler(void)
 			I2C_STEP=IIC_READY_STATUS;		//I2C Ready state
 			temp = IICS;					//Clear the interrupt
 			IICS_IICIF=1;
-	
+
 			IICC_TX=0;
 			IICS_SRW=0;
 			
 			//generate the stop condition if the flag is not set
-			if (I2C_NO_STOP_FLAG == 0)		
+			if (I2C_NO_STOP_FLAG == 0)
 				IICC_MST=0;
+
+			//store last byte read if i2c was receiving mode
+			//IICC_TX bit high to avoid another read cycle.
+			if (I2C_DATA_DIRECTION == 0)
+			{
+				IICC_TX = 1;
+				I2C_RX_DATA[I2C_RX_COUNTER] = IICD;
+				IICC_TX = 0;
+			}
 			
 			return;
 		}		

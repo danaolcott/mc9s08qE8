@@ -36,7 +36,7 @@ void I2C_init(void);
 
 uint8_t I2C_write1Byte(uint8_t address, uint8_t data0);
 uint8_t I2C_write2Bytes(uint8_t address, uint8_t data0, uint8_t data1);
-uint8_t I2C_readDataByte(uint8_t address, uint8_t* data);
+uint8_t I2C_readDataByte(uint8_t address);
 
 uint8_t I2C_writeDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes);
 uint8_t I2C_readDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes);

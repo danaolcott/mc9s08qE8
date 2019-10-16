@@ -120,18 +120,25 @@ void main(void)
 		length = LCD_decimalToBuffer(counter, printBuffer, GAME_PRINT_BUFFER_SIZE);
 		LCD_drawStringLength(0, 14, printBuffer, length);
 		
-		LCD_drawString(1, 0, "V:");
+		LCD_drawString(0, 50, "V:");
 		length = LCD_decimalToBuffer(value, printBuffer, GAME_PRINT_BUFFER_SIZE);
-		LCD_drawStringLength(1, 14, printBuffer, length);
+		LCD_drawStringLength(0, 64, printBuffer, length);
 		
-		LCD_drawString(2, 0, "Rx0:");
+		LCD_drawString(1, 0, "Rx0:");
 		length = LCD_decimalToBuffer(I2C_RX_DATA[0], printBuffer, GAME_PRINT_BUFFER_SIZE);
+		LCD_drawStringLength(1, 32, printBuffer, length);
+
+		LCD_drawString(2, 0, "Rx1:");
+		length = LCD_decimalToBuffer(I2C_RX_DATA[1], printBuffer, GAME_PRINT_BUFFER_SIZE);
 		LCD_drawStringLength(2, 32, printBuffer, length);
 
-		LCD_drawString(3, 0, "Rx1:");
-		length = LCD_decimalToBuffer(I2C_RX_DATA[1], printBuffer, GAME_PRINT_BUFFER_SIZE);
+		LCD_drawString(3, 0, "Rx2:");
+		length = LCD_decimalToBuffer(I2C_RX_DATA[2], printBuffer, GAME_PRINT_BUFFER_SIZE);
 		LCD_drawStringLength(3, 32, printBuffer, length);
-
+		
+		LCD_drawString(4, 0, "Rx3:");
+		length = LCD_decimalToBuffer(I2C_RX_DATA[3], printBuffer, GAME_PRINT_BUFFER_SIZE);
+		LCD_drawStringLength(4, 32, printBuffer, length);
 		
 		
 		if (value == counter)
@@ -146,7 +153,7 @@ void main(void)
 			GPIO_clearGreen();			
 		}
 		
-		if (counter < 127)
+		if (counter < 120)
 			counter++;
 		else
 			counter = 0;
