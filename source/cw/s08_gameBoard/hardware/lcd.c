@@ -122,6 +122,8 @@ void LCD_init(void)
 }
 
 
+/*
+
 //////////////////////////////////////
 //Set display enable command
 void LCD_on(void)
@@ -135,6 +137,8 @@ void LCD_off(void)
 {
 	LCD_writeCommand(0xAE);	
 }
+
+*/
 
 /////////////////////////////////////////////
 //Set Page - 0 to 7, top to bottom.
@@ -170,9 +174,6 @@ void LCD_clear(uint8_t value)
 	
 	for (index = 0x00 ; index < FRAME_BUFFER_SIZE ; index++)
 		frameBuffer[index] = value;
-
-	LCD_setColumn(0);
-	LCD_setPage(0);
 	
 	for (i = 0 ; i < LCD_NUM_PAGES ; i++)
 	{

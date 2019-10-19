@@ -70,8 +70,8 @@ void LCD_writeData(uint8_t data);
 void LCD_writeDataBurst(uint8_t *far data, uint16_t length);
 
 void LCD_init(void);
-void LCD_on(void);
-void LCD_off(void);
+//void LCD_on(void);
+//void LCD_off(void);
 
 void LCD_setPage(uint8_t page);
 void LCD_setColumn(uint8_t column);

@@ -34,8 +34,10 @@ unsigned char I2C_TX_COUNTER = 0;
 //static unsigned char I2C_TX_DATA[8] @ 0x244u;
 //static unsigned char I2C_RX_DATA[8] @ 0x24Cu;
 
-volatile unsigned char I2C_TX_DATA[4] = {0x00};
-volatile unsigned char I2C_RX_DATA[4] = {0x00};
+//i2c data buffers, put these in near memory
+//since it's accessed in an interrupt
+volatile unsigned char I2C_TX_DATA[I2C_BUFFER_SIZE] = {0x00};
+volatile unsigned char I2C_RX_DATA[I2C_BUFFER_SIZE] = {0x00};
 
 unsigned char I2C_NO_STOP_FLAG = 0x00;
 unsigned char I2C_RESTART_FLAG = 0x00;
@@ -45,6 +47,14 @@ unsigned char I2C_RESTART_FLAG = 0x00;
 void I2C_init(void)
 {
 	uint8_t dummy = 0x00;
+
+	//clear the i2c buffers
+	for (dummy = 0x00 ; dummy < I2C_BUFFER_SIZE ; dummy++)
+	{
+		I2C_TX_DATA[dummy] = 0x00;
+		I2C_RX_DATA[dummy] = 0x00;
+	}
+	
 	
 	IICC1_IICEN = 1;		//i2c enable
 	
@@ -118,12 +128,17 @@ uint8_t I2C_write2Bytes(uint8_t address, uint8_t data0, uint8_t data1)
 	I2C_TX_COUNTER = 0x00;
 	I2C_STEP = IIC_HEADER_SENT_STATUS;
 	I2C_DATA_DIRECTION = 1;
+	
+	//clear flags
+	I2C_NO_STOP_FLAG = 0x00;
+	I2C_RESTART_FLAG = 0x00;
+	
 
 	address &= 0xFE;		//clear bit 0 for write
 
 	IICC_IICEN = 0;
 	IICC_IICEN = 1;
-	
+
 	dummy = IICS;		//clear any interrupt	
 	IICS_IICIF = 1;
 	
@@ -140,6 +155,7 @@ uint8_t I2C_write2Bytes(uint8_t address, uint8_t data0, uint8_t data1)
 	
 	//wait until it returns either an error or a ready state
 	while (I2C_STEP > IIC_READY_STATUS){};
+
 	
 	return I2C_STEP;
 }
@@ -197,107 +213,6 @@ uint8_t I2C_readDataByte(uint8_t address)
 		
 	return result;
 }
-
-
-//////////////////////////////////////////////////
-//Send numBytes over the i2c.  Contents of data array
-//are copied into I2C_TX_DATA and sent over i2c.
-//The approach follows along with the peripheral guide
-//
-uint8_t I2C_writeDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes)
-{	
-	uint8_t dummy = 0x00;
-	
-	//copy numBytes into I2C_TX_DATA
-	for (dummy = 0 ; dummy < numBytes ; dummy++)
-		I2C_TX_DATA[dummy] = data[dummy];
-	
-	I2C_TX_LENGTH = numBytes;
-	I2C_TX_COUNTER = 0x00;
-	I2C_STEP = IIC_HEADER_SENT_STATUS;
-	I2C_DATA_DIRECTION = 1;
-	
-	address &= 0xFE;		//clear bit 0 for write
-	
-	IICC_IICEN = 0;
-	IICC_IICEN = 1;
-	
-	dummy = IICS;		//clear any interrupt	
-	IICS_IICIF = 1;
-	
-	IICC_MST = 0;		//slave
-	IICS_SRW = 0;
-	IICC_TX = 1;		//transmitter
-	IICC_MST = 1;		//generate start condition
-	
-	//wait a bit
-	for (dummy = 0 ; dummy < 5 ; dummy++);
-
-	//start the transmission and the interrupt sequence.
-	IICD = address;
-
-	//wait until it returns either an error or a ready state
-	while (I2C_STEP > IIC_READY_STATUS){};
-	
-	return I2C_STEP;		
-}
-
-
-/////////////////////////////////////////////////////
-//Read numBytes into data array from address.  
-//Uses I2C_RX_DATA to read the data, then copies
-//it when returning if the status is ready
-uint8_t I2C_readDataArray(uint8_t address, uint8_t far* data, uint8_t numBytes)
-{
-	uint8_t temp;
-	
-	I2C_RX_LENGTH = numBytes;	
-	I2C_RX_COUNTER = 0;
-	I2C_STEP = IIC_HEADER_SENT_STATUS;
-	I2C_DATA_DIRECTION = 0;				//receiver
-	
-	//set the address with bit 0 high
-	address &= 0xFE;
-	address |= 0x01;		//set as read
-	
-	temp = IICS;			//clear pending interrupts
-	IICS_IICIF = 1;
-	
-	IICC1_TXAK = 0x00;		//ack signal is sent after receiving one data byte
-	IICC_TX = 1;			//transmitter to send address but with add bit 0 high
-	
-	//generate the start or a restart
-	if (I2C_RESTART_FLAG == 1)
-	{
-		IICC_RSTA = 1;
-		I2C_RESTART_FLAG = 0;
-	}
-	else
-	{
-		IICC_MST = 1;			//generate start condition		
-	}
-	
-	//wait a bit
-	for (temp = 0 ; temp < 5 ; temp++);
-	
-	//send the address
-	IICD = address;
-	
-	//wait until it returns either an error or a ready state
-	while (I2C_STEP > IIC_READY_STATUS){};
-
-	//copy the data if it's valid and no errors
-	if (I2C_STEP == IIC_READY_STATUS)
-	{
-		//copy the data from the rx buffer into data
-		for (temp = 0 ; temp < numBytes ; temp++)
-			data[temp] = I2C_RX_DATA[temp];
-	}
-	
-	return I2C_STEP;
-}
-
-
 
 
 

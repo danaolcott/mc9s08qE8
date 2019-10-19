@@ -872,6 +872,8 @@ void Game_playExplosionPlayer_withSound(void)
 void Game_playGameOver(void)
 {
 	static uint8_t toggle = 0x00;
+//	uint8_t length = 0x00;
+//	uint8_t buffer[8] = {0x00};
 	
 	DisableInterrupts;
 	LCD_clearFrameBuffer(0x00, 0);
@@ -879,6 +881,11 @@ void Game_playGameOver(void)
 	EnableInterrupts;
 	
 	//draw game over
+//	LCD_drawString(1, 0, "C:");
+//	length = LCD_decimalToBuffer(EEPROM_getCycleCount(), buffer, GAME_PRINT_BUFFER_SIZE);
+//	LCD_drawStringLength(1, 20, buffer, length);
+
+	
 	LCD_drawString(2, 34, "Game");
 	LCD_drawString(3, 34, "Over");
 	LCD_drawString(5, 31, "Press");	
