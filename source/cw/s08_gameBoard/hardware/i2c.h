@@ -30,10 +30,6 @@
 #define IIC_DATA_TRANSMISION_STATUS 3
 #define IIC_DATA_SENT_STATUS 4
 
-//extern volatile unsigned char I2C_TX_DATA[4];
-//extern volatile unsigned char I2C_RX_DATA[4];
-
-
 void I2C_init(void);
 
 uint8_t I2C_write1Byte(uint8_t address, uint8_t data0);

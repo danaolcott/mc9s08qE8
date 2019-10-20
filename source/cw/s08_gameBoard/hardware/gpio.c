@@ -35,10 +35,6 @@ void GPIO_init(void)
 	PTBDD &=~ BIT0;		//User Button
 	PTBDD &=~ BIT1;		//User Button
 	
-	//debug - PC1
-	PTCDD |= BIT1;
-	PTCD &=~ BIT1;
-	
 	//////////////////////////////////////////////
 	//PB1 - input, falling edged trigger interrupt
 	//Registers:
@@ -103,7 +99,7 @@ void GPIO_clearGreen(void){
 //see mc9s08qe8.h
 //vector 18, maps to address: 0xFFDA
 //
-//PA0 and PB0 - change these to polling
+//PB1 - fire button, set the flag for player fire
 void interrupt VectorNumber_Vkeyboard kbi_isr(void)
 {
 	KBISC_KBACK = 1;	//clear the interrupt flag
