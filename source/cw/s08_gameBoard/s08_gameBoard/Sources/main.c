@@ -56,7 +56,6 @@
 #include "spi.h"
 #include "i2c.h"
 #include "eeprom.h"
-#include "adc.h"
 #include "pwm.h"
 #include "lcd.h"
 #include "game.h"
@@ -69,11 +68,7 @@ void System_init(void);
 static unsigned int gameLoopCounter = 0x00;
 uint8_t length = 0x00;
 static char far printBuffer[GAME_PRINT_BUFFER_SIZE] = {0x00};
-uint8_t counter = 0x00;
-uint8_t value = 0x00;
-uint8_t i = 0x00;
-uint8_t status = 0x00;
-
+uint16_t cycleCounter = 0x00;
 
 void main(void) 
 {
@@ -83,7 +78,6 @@ void main(void)
 	RTC_init_internal(RTC_FREQ_100HZ);	//use internal timer for 100hz interrupt
 	
 	GPIO_init();				//IO
-	ADC_init();					//ADC Channel 1 - temp sensor
 	PWM_init(1000);				//PWM output on PC0
 	SPI_init();					//configure the SPI
 	I2C_init();					//configure i2c on PA2 and PA3
@@ -92,7 +86,9 @@ void main(void)
 	Sound_init();
 	EnableInterrupts;			//enable interrupts
 
-	EEPROM_init();				//load stored data - interrupts enabled
+	//check to reset memory - read both left and right buttons down
+	if ((!(PTAD & BIT0)) && (!(PTBD & BIT0)))
+		cycleCounter = EEPROM_updateCycleCount(1);				//load stored data - interrupts enabled
 	
 	while (1)
 	{	
@@ -145,12 +141,18 @@ void main(void)
 		{
 			Sound_playGameOver_blocking();
 			
-			//update the cycle counter
-			EEPROM_updateCycleCount();
+			//update the cycle counter - pass 0 as the
+			//clear flag
+			cycleCounter = EEPROM_updateCycleCount(0);
 
 			while (Game_flagGetGameOverFlag() == 1)
 			{
 				Game_playGameOver();
+				
+				//draw the new cycle counter
+				LCD_drawString(1, 0, "Game#:");
+				length = LCD_decimalToBuffer(cycleCounter, printBuffer, GAME_PRINT_BUFFER_SIZE);
+				LCD_drawStringLength(1, 50, printBuffer, length);
 				
 				//if either left or right
 				if ((!(PTAD & BIT0)) || (!(PTBD & BIT0)))

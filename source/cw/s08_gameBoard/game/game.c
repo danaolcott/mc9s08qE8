@@ -45,6 +45,7 @@ volatile uint8_t mEnemyHitFlag = 0x00;
 static uint16_t mGameScore @ 0x240u;
 static uint8_t mGameLevel @ 0x242u;
 
+
 //NOTE:
 //0x242 is the last pre-determined address
 //so, should be able to put data starting at 
@@ -63,7 +64,8 @@ void Game_init(void)
 	mEnemyHitFlag = 0x00;
 	mGameScore = 0x00;
 	mGameLevel = 0x00;
-
+	mGameOverFlag = 0x00;
+	
 	LCD_clear(0x00);			//clear screen
 	LCD_clearBackground(0xAA);	//margins
 
@@ -92,7 +94,7 @@ void Game_playerInit(void)
 //
 void Game_enemyInit(void)
 {
-	uint16_t i, j = 0;
+	uint8_t i, j = 0;
 	uint8_t index = 0;
 
 	for (i = 0 ; i < GAME_ENEMY_NUM_ROWS ; i++)
@@ -100,8 +102,8 @@ void Game_enemyInit(void)
 		for (j = 0 ; j < GAME_ENEMY_NUM_COLS ; j++)
 		{
 			mEnemy[index].flag_VHL = 0x07;			//down, right, alive
-			mEnemy[index].xPosition = (uint8_t)(GAME_ENEMY_X_SPACING * j);
-			mEnemy[index].yPosition = (uint8_t)(GAME_ENEMY_Y_SPACING * i);
+			mEnemy[index].xPosition = (GAME_ENEMY_X_SPACING * j);
+			mEnemy[index].yPosition = (GAME_ENEMY_Y_SPACING * i);
 
 			index++;
 		}
@@ -140,35 +142,6 @@ void Game_playerMoveRight(void)
 		mPlayer.xPosition+=2;
 }
 
-
-///////////////////////////////////////////////
-//Game_playerMove
-//For now, just move the player left and right
-void Game_playerMoveDemo(void)
-{
-	static uint8_t moveRight = 1;
-	
-	if (moveRight == 1)
-	{
-		if (mPlayer.xPosition < GAME_PLAYER_MAX_X)
-			mPlayer.xPosition++;
-		else
-		{
-			moveRight = 0;
-			mPlayer.xPosition--;
-		}
-	}
-	else
-	{
-		if (mPlayer.xPosition > GAME_PLAYER_MIN_X)
-			mPlayer.xPosition--;
-		else
-		{
-			moveRight = 1;
-			mPlayer.xPosition++;
-		}		
-	}
-}
 
 
 ///////////////////////////////////////////////
@@ -461,10 +434,8 @@ void Game_missileMove(void)
 //updates the contents of the display
 void Game_playerDraw(void)
 {
-	LCD_clearPlayerPage(0x00);
-	
-	if (mPlayer.numLives > 0)
-		LCD_drawImagePage(GAME_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER);
+	LCD_clearPage(GAME_PLAYER_PAGE, 0x00);
+	LCD_drawImagePage(GAME_PLAYER_PAGE, mPlayer.xPosition, BITMAP_PLAYER);
 }
 
 
@@ -871,21 +842,13 @@ void Game_playExplosionPlayer_withSound(void)
 //draw a sequence on the boarder, flip from AA to 55
 void Game_playGameOver(void)
 {
-	static uint8_t toggle = 0x00;
-//	uint8_t length = 0x00;
-//	uint8_t buffer[8] = {0x00};
-	
+	static uint8_t toggle = 0x00;	
+
 	DisableInterrupts;
 	LCD_clearFrameBuffer(0x00, 0);
 	LCD_updateFrameBuffer();	
 	EnableInterrupts;
-	
-	//draw game over
-//	LCD_drawString(1, 0, "C:");
-//	length = LCD_decimalToBuffer(EEPROM_getCycleCount(), buffer, GAME_PRINT_BUFFER_SIZE);
-//	LCD_drawStringLength(1, 20, buffer, length);
-
-	
+		
 	LCD_drawString(2, 34, "Game");
 	LCD_drawString(3, 34, "Over");
 	LCD_drawString(5, 31, "Press");	

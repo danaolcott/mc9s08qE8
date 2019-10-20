@@ -96,7 +96,6 @@ void Game_missileInit(void);
 
 void Game_playerMoveLeft(void);
 void Game_playerMoveRight(void);
-void Game_playerMoveDemo(void);
 void Game_enemyMove(void);
 void Game_missileMove(void);
 

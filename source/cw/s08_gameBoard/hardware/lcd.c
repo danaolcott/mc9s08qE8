@@ -122,24 +122,6 @@ void LCD_init(void)
 }
 
 
-/*
-
-//////////////////////////////////////
-//Set display enable command
-void LCD_on(void)
-{
-	LCD_writeCommand(0xAF);
-}
-
-/////////////////////////////////////////
-//Set display disable command
-void LCD_off(void)
-{
-	LCD_writeCommand(0xAE);	
-}
-
-*/
-
 /////////////////////////////////////////////
 //Set Page - 0 to 7, top to bottom.
 //Base address = 0xB0, page address is
@@ -230,31 +212,6 @@ void LCD_clearFrameBuffer(uint8_t value, uint8_t update)
 }
 
 
-//////////////////////////////////////////////
-//Clear the page that is used by the player
-//over the full width of the LCD
-void LCD_clearPlayerPage(uint8_t value)
-{
-	uint8_t i = 0x00;
-	LCD_setColumn(0);
-	LCD_setPage(LCD_PLAYER_PAGE);
-	
-	for (i = 0 ; i < LCD_WIDTH ; i++)
-			LCD_writeData(value);
-}
-
-///////////////////////////////////////////////
-//Clear the page that is used to show the score
-//over the full width of the LCD
-void LCD_clearScorePage(uint8_t value)
-{
-	uint8_t i = 0x00;
-	LCD_setColumn(0);
-	LCD_setPage(LCD_SCORE_PAGE);
-
-	for (i = 0 ; i < LCD_WIDTH ; i++)
-			LCD_writeData(value);
-}
 
 //////////////////////////////////////////////
 //Clears everything except the framebuffer 
@@ -267,17 +224,15 @@ void LCD_clearBackground(uint8_t value)
 
 	for (i = FRAME_BUFFER_START_PAGE ; i < FRAME_BUFFER_STOP_PAGE + 1 ; i++)
 	{
-		//left margin
-		LCD_setColumn(0);
 		LCD_setPage(i);
 		
+		//left margin
+		LCD_setColumn(0);		
 		for (j = 0 ; j < FRAME_BUFFER_OFFSET_X ; j++)
 			LCD_writeData(value);
 		
 		//right margin
 		LCD_setColumn(LCD_WIDTH - FRAME_BUFFER_OFFSET_X);
-		LCD_setPage(i);
-
 		for (j = 0 ; j < FRAME_BUFFER_OFFSET_X ; j++)
 			LCD_writeData(value);
 	}
@@ -304,37 +259,6 @@ void LCD_updateFrameBuffer(void)
 		LCD_writeDataBurst((uint8_t *far)ptr, FRAME_BUFFER_WIDTH);		
 		ptr += FRAME_BUFFER_WIDTH;
 	}	
-}
-
-
-////////////////////////////////////////////
-//Draws one character at row and col from
-//the 8x8 font table
-void LCD_drawChar(uint8_t row, uint8_t col, uint8_t letter)
-{
-	unsigned int line;
-	unsigned int value0;
-	uint8_t width = 8;
-	unsigned int i = 0;
-	
-	if ((letter >= 32) && (letter < 127))
-	{
-		//set the x and y start positions
-		LCD_setPage(row);
-		LCD_setColumn(col);
-		
-		if ((col + width) < LCD_WIDTH)
-		{
-			line = letter - 27;		//ie, for char 32 " ", it's on line 5
-			value0 = (line-1) << 3;
-			
-			//loop through the width
-			for (i = 0 ; i < width ; i++)
-			{
-				LCD_writeData(font_table[value0 + i]);
-			}
-		}		
-	}
 }
 
 
@@ -568,27 +492,6 @@ void LCD_putPixelRam(uint16_t x, uint16_t y, uint8_t color, uint8_t update)
 		LCD_writeData(elementValue);
 	}	
 }
-
-
-
-///////////////////////////////////////////////////////////////
-void LCD_drawLine(int x0, int y0, int x1, int y1, uint8_t color)
-{
-	int dx = abs(x1-x0), sx = x0<x1 ? 1 : -1;
-	int dy = abs(y1-y0), sy = y0<y1 ? 1 : -1;
-	int err = (dx>dy ? dx : -dy)/2, e2;
-	
-	for(;;)
-	{
-		//update the display
-		LCD_putPixelRam(x0,y0, color, 1);
-		if (x0==x1 && y0==y1) break;
-		e2 = err;
-		if (e2 >-dx) { err -= dy; x0 += sx; }
-		if (e2 < dy) { err += dx; y0 += sy; }
-	}   
-}
-
 
 
 
