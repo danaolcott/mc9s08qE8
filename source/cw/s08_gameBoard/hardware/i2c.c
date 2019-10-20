@@ -18,35 +18,40 @@
 #include "config.h"
 #include "i2c.h"
 
-unsigned char I2C_STEP = IIC_READY_STATUS;
-unsigned char I2C_DATA_DIRECTION = 0;		//0 = read, 1 = write
-unsigned char I2C_RX_LENGTH = 1;
-unsigned char I2C_RX_COUNTER = 0;
 
-unsigned char I2C_TX_LENGTH = 1;
-unsigned char I2C_TX_COUNTER = 0;
-
-//I2C buffers, store these at a specific address
-//From the game files, the last address used was 
-//0x243.  Set the buffers at 8 bytes each
-//Last address = 0x25F
+/////////////////////////////////////////////
+//I2C Globals 
+//These are used to control the i2c data flow
+//Declare these at far memory at specific addresses
 //
-//static unsigned char I2C_TX_DATA[8] @ 0x244u;
-//static unsigned char I2C_RX_DATA[8] @ 0x24Cu;
+static unsigned char I2C_TX_DATA[4] @ 0x244u;
+static unsigned char I2C_RX_DATA[4] @ 0x248u;
 
-//i2c data buffers, put these in near memory
-//since it's accessed in an interrupt
-volatile unsigned char I2C_TX_DATA[I2C_BUFFER_SIZE] = {0x00};
-volatile unsigned char I2C_RX_DATA[I2C_BUFFER_SIZE] = {0x00};
+static unsigned char I2C_NO_STOP_FLAG @ 0x24Cu;
+static unsigned char I2C_RESTART_FLAG @ 0x24Du;
+static unsigned char I2C_STEP @ 0x24Eu;
+static unsigned char I2C_DATA_DIRECTION @ 0x24Fu;		//0 = read, 1 = write
+static unsigned char I2C_RX_LENGTH @ 0x250u;
+static unsigned char I2C_RX_COUNTER @ 0x251u;
+static unsigned char I2C_TX_LENGTH @ 0x252u;
+static unsigned char I2C_TX_COUNTER @ 0x253u;
 
-unsigned char I2C_NO_STOP_FLAG = 0x00;
-unsigned char I2C_RESTART_FLAG = 0x00;
 
 ///////////////////////////////////////////
 //Configure I2C on PA2 (SDA) and PA3 (SCL).
 void I2C_init(void)
 {
 	uint8_t dummy = 0x00;
+
+	//init the global values
+	I2C_STEP = IIC_READY_STATUS;
+	I2C_DATA_DIRECTION = 0;		//0 = read, 1 = write
+	I2C_RX_LENGTH = 1;
+	I2C_RX_COUNTER = 0;	
+	I2C_TX_LENGTH = 1;
+	I2C_TX_COUNTER = 0;	
+	I2C_NO_STOP_FLAG = 0x00;
+	I2C_RESTART_FLAG = 0x00;
 
 	//clear the i2c buffers
 	for (dummy = 0x00 ; dummy < I2C_BUFFER_SIZE ; dummy++)
@@ -458,8 +463,8 @@ void I2C_interruptHandler(void)
 			}
 			
 			return;
-		}		
-	}	
+		}
+	}
 }
 
 

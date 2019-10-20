@@ -63,7 +63,7 @@ void Game_init(void)
 	mGameLevelUpFlag = 0x00;
 	mEnemyHitFlag = 0x00;
 	mGameScore = 0x00;
-	mGameLevel = 0x00;
+	mGameLevel = 0x01;
 	mGameOverFlag = 0x00;
 	
 	LCD_clear(0x00);			//clear screen
@@ -580,9 +580,37 @@ uint8_t Game_enemyGetNumEnemy(void)
 int Game_enemyGetRandomEnemy(void)
 {
 	uint8_t i = 0;
-	uint8_t index = 0;
+	//uint8_t index = 0;
 	uint8_t counter = 0x00;
 	uint8_t numEnemy = Game_enemyGetNumEnemy();
+	static uint8_t index = 0x00;
+	
+	if (numEnemy > 0)
+	{
+		//traverse the enemy array
+		if ((index < numEnemy) && (index < (GAME_ENEMY_NUM_ENEMY - 1)))
+			index++;
+		else
+			index = 0;
+		
+		//with the new index, find the alive one
+		//with the equivalent position in the array
+		
+		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
+		{
+			if (((mEnemy[i].flag_VHL & 0x01)) == 1)
+			{
+				if (index == counter)
+					return counter;
+				
+				counter++;
+			}
+		}
+	}
+	
+	return -1;
+	
+/*	
 
 	if (numEnemy > 0)
 	{
@@ -607,6 +635,9 @@ int Game_enemyGetRandomEnemy(void)
 	}
 	
 	return -1;		//no enemy remaining
+	
+	*/
+	
 }
 
 
