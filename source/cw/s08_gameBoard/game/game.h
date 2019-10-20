@@ -65,12 +65,13 @@ typedef struct{
 
 ////////////////////////////////////////
 //Enemy Definition
-//flag_VHL - bits containing the direction and life
-//of the enemy.  V - vertical, high = down
-//H = horizontal, high = right, L = life, high = alive
+//flag_VH - bits containing the direction of
+//the enemy, V - vertical, high = down
+//H = horizontal, high = right
 //
 typedef struct{
-	uint8_t flag_VHL;		//Vertical - down, Horiz - left, Life - alive
+	uint8_t flag_VH;		//Vertical - down, Horiz - left (bits 1 and 0)
+	uint8_t alive;
 	uint8_t xPosition;
 	uint8_t yPosition;	
 }EnemyStruct;
@@ -97,7 +98,7 @@ void Game_missileInit(void);
 void Game_playerMoveLeft(void);
 void Game_playerMoveRight(void);
 void Game_enemyMove(void);
-void Game_missileMove(void);
+uint8_t Game_missileMove(void);
 
 void Game_playerDraw(void);
 void Game_enemyDraw(void);

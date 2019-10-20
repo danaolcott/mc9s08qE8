@@ -101,10 +101,10 @@ void Game_enemyInit(void)
 	{
 		for (j = 0 ; j < GAME_ENEMY_NUM_COLS ; j++)
 		{
-			mEnemy[index].flag_VHL = 0x07;			//down, right, alive
+			mEnemy[index].flag_VH = 0x03;		//down right
+			mEnemy[index].alive = 1;
 			mEnemy[index].xPosition = (GAME_ENEMY_X_SPACING * j);
 			mEnemy[index].yPosition = (GAME_ENEMY_Y_SPACING * i);
-
 			index++;
 		}
 	}
@@ -159,27 +159,23 @@ void Game_enemyMove(void)
 	//direction flags
 	uint8_t right = 0x00;
 	uint8_t down = 0x00;
-	uint8_t alive = 0x00;
 	
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
 		//get flags
-		alive = mEnemy[i].flag_VHL & 0x01;
-		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
-		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
+		right = (mEnemy[i].flag_VH) & 0x01;
 
 		//moving right
 		if (right == 1)
 		{
-			if (((mEnemy[i].xPosition + sizeX) < GAME_ENEMY_MAX_X) && (alive == 1))
+			if (((mEnemy[i].xPosition + sizeX) < GAME_ENEMY_MAX_X) && (mEnemy[i].alive == 1))
 				mEnemy[i].xPosition += 2;
-
 		}
 		
 		//moving left
 		else
 		{
-			if ((mEnemy[i].xPosition > GAME_ENEMY_MIN_X) && (alive == 1))
+			if ((mEnemy[i].xPosition > GAME_ENEMY_MIN_X) && (mEnemy[i].alive == 1))
 				mEnemy[i].xPosition -= 2;
 		}
 	}
@@ -187,13 +183,8 @@ void Game_enemyMove(void)
 	//direction change - left
 	flag = 0x00;	
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
-	{
-		//get flags
-		alive = mEnemy[i].flag_VHL & 0x01;
-		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
-		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
-		
-		if (((mEnemy[i].xPosition + sizeX) >= GAME_ENEMY_MAX_X) && (alive == 1))
+	{		
+		if (((mEnemy[i].xPosition + sizeX) >= GAME_ENEMY_MAX_X) && (mEnemy[i].alive == 1))
 		{
 			flag = 1;
 			i = GAME_ENEMY_NUM_ENEMY;
@@ -206,20 +197,15 @@ void Game_enemyMove(void)
 		//change the direction bit for each enemy - clear it for left
 		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 		{
-			mEnemy[i].flag_VHL &=~ BIT1;
+			mEnemy[i].flag_VH &=~ BIT0;
 		}		
 	}
 	
 	//direction change - right
 	flag = 0x00;	
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
-	{
-		//read the flags
-		alive = mEnemy[i].flag_VHL & 0x01;
-		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
-		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
-		
-		if ((mEnemy[i].xPosition <= GAME_ENEMY_MIN_X) && (alive == 1))
+	{		
+		if ((mEnemy[i].xPosition <= GAME_ENEMY_MIN_X) && (mEnemy[i].alive == 1))
 		{
 			flag = 1;
 			i = GAME_ENEMY_NUM_ENEMY;
@@ -232,24 +218,22 @@ void Game_enemyMove(void)
 		//flip direction to right
 		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 		{
-			mEnemy[i].flag_VHL |= BIT1;			//set direction right
-
-			alive = mEnemy[i].flag_VHL & 0x01;
-			right = (mEnemy[i].flag_VHL & 0x02) >> 1;
-			down = (mEnemy[i].flag_VHL & 0x04) >> 2;
+			mEnemy[i].flag_VH |= BIT0;			//set direction right
+			
+			down = ((mEnemy[i].flag_VH) >> 1) & 0x01;
 
 			//enemy are moving down
 			if (down == 1)
 			{
 				//move down
-				if(((mEnemy[i].yPosition + sizeY) < GAME_ENEMY_MAX_Y) && (alive == 1))
+				if(((mEnemy[i].yPosition + sizeY) < GAME_ENEMY_MAX_Y) && (mEnemy[i].alive == 1))
 					mEnemy[i].yPosition++;
 			}
 			
 			//enemy are moving up
 			else
 			{
-				if((mEnemy[i].yPosition > GAME_ENEMY_MIN_Y) && (alive == 1))
+				if((mEnemy[i].yPosition > GAME_ENEMY_MIN_Y) && (mEnemy[i].alive == 1))
 					mEnemy[i].yPosition--;
 			}
 		}
@@ -259,12 +243,7 @@ void Game_enemyMove(void)
 	flag = 0;
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
-		//read the flags
-		alive = mEnemy[i].flag_VHL & 0x01;
-		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
-		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
-
-		if(((mEnemy[i].yPosition + sizeY) >= GAME_ENEMY_MAX_Y) && (alive == 1))
+		if(((mEnemy[i].yPosition + sizeY) >= GAME_ENEMY_MAX_Y) && (mEnemy[i].alive == 1))
 		{
 			flag = 1;
 			i = GAME_ENEMY_NUM_ENEMY;
@@ -277,7 +256,7 @@ void Game_enemyMove(void)
 	{
 		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 		{
-			mEnemy[i].flag_VHL &=~ BIT2;		//clear Vertical bit
+			mEnemy[i].flag_VH &=~ BIT1;			//clear the vertical bit
 			mEnemy[i].yPosition -= 1;			//move up
 		}
 	}
@@ -287,12 +266,7 @@ void Game_enemyMove(void)
 	flag = 0;
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
-		//read the flags
-		alive = mEnemy[i].flag_VHL & 0x01;
-		right = (mEnemy[i].flag_VHL & 0x02) >> 1;
-		down = (mEnemy[i].flag_VHL & 0x04) >> 2;
-
-		if((mEnemy[i].yPosition <= GAME_ENEMY_MIN_Y) && (alive == 1))
+		if((mEnemy[i].yPosition <= GAME_ENEMY_MIN_Y) && (mEnemy[i].alive == 1))
 		{
 			flag = 1;
 			i = GAME_ENEMY_NUM_ENEMY;
@@ -305,7 +279,7 @@ void Game_enemyMove(void)
 	{
 		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 		{
-			mEnemy[i].flag_VHL |= BIT2;		//set Vertical bit
+			mEnemy[i].flag_VH |= BIT1;		//set Vertical bit
 			mEnemy[i].yPosition += 1;		//move down
 		}
 	}
@@ -319,14 +293,13 @@ void Game_enemyMove(void)
 //
 //Update the position of the missiles.  Enemy
 //missiles move down and player missiles move up
-void Game_missileMove(void)
+uint8_t Game_missileMove(void)
 {
 	uint8_t i, j = 0;
 	uint8_t mX, mY, bot, top, left, right = 0x00;
 	uint8_t numEnemyRemaining = 0x00;
 	uint8_t numPlayerRemaining = 0x00;
 	
-		
 	for (i = 0 ; i < GAME_MISSILE_NUM_MISSILE ; i++)
 	{
 		//player missile - moving up
@@ -347,7 +320,7 @@ void Game_missileMove(void)
 			for (j = 0 ; j < GAME_ENEMY_NUM_ENEMY ; j++)
 			{
 				//alive?
-				if ((mEnemy[j].flag_VHL & 0x01))
+				if ((mEnemy[j].alive == 1))
 				{
 					//get the coordinates of the missile and
 					//box that outlines the enemy
@@ -370,16 +343,16 @@ void Game_missileMove(void)
                     	mEnemyHitFlag = 1;
                     	
                     	if (numEnemyRemaining == 0)
-                    	{
-                    		//reset the enemy
-                    		Game_levelUp();
-
+                    	{                    		
+                    		//set the level up flag and exit
+                    		mGameLevelUpFlag = 1;                    		
+                    		return 1;
                     	}
                     }
 				}
 			}
 		}
-				
+
 		//enemy missile - moving down
 		if ((mEnemyMissile[i].y < GAME_MISSILE_MAX_Y) && (mEnemyMissile[i].alive == 1))
 			mEnemyMissile[i].y+=2;
@@ -418,12 +391,15 @@ void Game_missileMove(void)
             	//last player??
             	if (numPlayerRemaining == 0)
             	{
-            		//set the game over flag, cleared in main
+            		//set the game over flag and exit
             		mGameOverFlag = 1;
+            		return 1;
             	}
             }
 		}
 	}
+	
+	return 0;
 }
 
 
@@ -447,7 +423,7 @@ void Game_enemyDraw(void)
 	uint8_t i = 0;
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
-		if ((mEnemy[i].flag_VHL) & 0x01)
+		if (mEnemy[i].alive == 1)
 		{			
 			LCD_drawImageRam(mEnemy[i].xPosition, mEnemy[i].yPosition, BITMAP_ENEMY, 0, 0);
 		}
@@ -538,11 +514,10 @@ uint8_t Game_missileEnemyLaunch(void)
 	uint8_t isAvailable = 0x00;
 	
 	//get the index of a live random enemy
-	//TODO: fix this, it's returning the index of a non-live enemy
+	//TODO: Big Fix - it's returning the index of a non-live enemy
 	index = Game_enemyGetRandomEnemy();
 	
-	//the bug is that it's returning the index of a non-live enemy
-	if ((index >= 0) && ((mEnemy[index].flag_VHL & 0x01) == 1))
+	if ((index >= 0) && (mEnemy[index].alive == 1))
 	{
 		//find the first available missile from enemy
 		//missile array and set it to true, x and y
@@ -581,7 +556,7 @@ uint8_t Game_enemyGetNumEnemy(void)
 	uint8_t count = 0;
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
-		if ((mEnemy[i].flag_VHL & 0x01) == 1)
+		if (mEnemy[i].alive == 1)
 			count++;
 	}
 	
@@ -612,10 +587,12 @@ int Game_enemyGetRandomEnemy(void)
 		
 		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 		{
-			if (mEnemy[i].flag_VHL & 0x01)
+			if (mEnemy[i].alive == 1)
 			{
 				if (index == counter)
+				{
 					return counter;
+				}
 				
 				counter++;
 			}
@@ -624,8 +601,8 @@ int Game_enemyGetRandomEnemy(void)
 	
 	return -1;
 	
-/*	
 
+	/*
 	if (numEnemy > 0)
 	{
 		//get a random index value, zero-based
@@ -638,10 +615,12 @@ int Game_enemyGetRandomEnemy(void)
 		//go to the random index, skipping over dead enemy
 		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 		{
-			if (((mEnemy[i].flag_VHL & 0x01)) == 1)
+			if (mEnemy[i].alive == 1)
 			{
 				if (index == counter)
-					return counter;
+				{
+					return counter;					
+				}
 				
 				counter++;
 			}
@@ -651,6 +630,7 @@ int Game_enemyGetRandomEnemy(void)
 	return -1;		//no enemy remaining
 	
 	*/
+	
 	
 }
 
@@ -665,7 +645,8 @@ uint8_t Game_scoreEnemyHit(uint8_t enemyIndex, uint8_t missileIndex)
 	uint8_t remaining = 0x0;
 	
 	//clear the index of the enemy
-	mEnemy[enemyIndex].flag_VHL = 0x00;
+	mEnemy[enemyIndex].alive = 0;
+	mEnemy[enemyIndex].flag_VH = 0x00;
 	mEnemy[enemyIndex].xPosition = 0x00;
 	mEnemy[enemyIndex].yPosition = 0x00;
 	
@@ -711,7 +692,6 @@ void Game_levelUp(void)
 	mGameLevel++;				//increase the level
 	Game_enemyInit();			//reset the enemy
 	Game_missileInit();			//reset the missiles
-	mGameLevelUpFlag = 1;		//checked, cleared in main
 }
 
 

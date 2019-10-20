@@ -41,6 +41,8 @@
  * Frame buffer assigned at 0x100 and size = 320 bytes
  * Remaining 32 bytes available starting at 0x240
  * 
+ * 7947
+ * 527
  * 
  *  
  * 
@@ -70,6 +72,7 @@ uint8_t length = 0x00;
 static char far printBuffer[GAME_PRINT_BUFFER_SIZE] = {0x00};
 uint16_t cycleCounter = 0x00;
 uint8_t launchResult = 0x00;
+uint8_t missileFlag = 0x00;
 
 void main(void) 
 {
@@ -136,8 +139,9 @@ void main(void)
 		//check level up flag
 		if (Game_flagGetLevelUpFlag() == 1)
 		{
-			Game_flagClearLevelUpFlag();
-			Sound_playLevelUp_blocking();
+			Game_flagClearLevelUpFlag();	//clear the flag
+			Game_levelUp();					//level up			
+			Sound_playLevelUp_blocking();	//play sound
 		}
 		
 		//check flag - game over
@@ -175,7 +179,7 @@ void main(void)
 		
 		//move enemy and missile				
 		Game_enemyMove();					//move enemy
-		Game_missileMove();					//move all missiles
+		missileFlag = Game_missileMove();	//move all missiles
 
 		//update display with interrupts disabled
 		DisableInterrupts;					//stop the timer
