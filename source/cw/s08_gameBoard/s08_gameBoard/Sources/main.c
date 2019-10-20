@@ -69,6 +69,7 @@ static unsigned int gameLoopCounter = 0x00;
 uint8_t length = 0x00;
 static char far printBuffer[GAME_PRINT_BUFFER_SIZE] = {0x00};
 uint16_t cycleCounter = 0x00;
+uint8_t launchResult = 0x00;
 
 void main(void) 
 {
@@ -87,8 +88,9 @@ void main(void)
 	EnableInterrupts;			//enable interrupts
 
 	//check to reset memory - read both left and right buttons down
-	if ((!(PTAD & BIT0)) && (!(PTBD & BIT0)))
-		cycleCounter = EEPROM_updateCycleCount(1);				//load stored data - interrupts enabled
+	//comment this out if not wanting to ever reset the counter
+	//if ((!(PTAD & BIT0)) && (!(PTBD & BIT0)))
+	//	cycleCounter = EEPROM_updateCycleCount(1);				//load stored data - interrupts enabled
 	
 	while (1)
 	{	
@@ -104,15 +106,17 @@ void main(void)
 		if (Game_flagGetButtonPress() == 1)
 		{
 			Game_flagClearButtonPress();
-			Game_missilePlayerLaunch();
-			Sound_playPlayerFire_blocking();
+			launchResult = Game_missilePlayerLaunch();
+			if (launchResult == 1)
+				Sound_playPlayerFire_blocking();
 		}
 
 		//check flag enemy missile launch
 		if (!(gameLoopCounter % 10))
 		{
-			Game_missileEnemyLaunch();
-			Sound_playEnemyFire_blocking();
+			launchResult = Game_missileEnemyLaunch();			
+			if (launchResult == 1)
+				Sound_playEnemyFire_blocking();
 		}
 		
 		//check flag player hit

@@ -103,8 +103,8 @@ void Game_playerDraw(void);
 void Game_enemyDraw(void);
 void Game_missileDraw(void);
 
-void Game_missilePlayerLaunch(void);
-void Game_missileEnemyLaunch(void);
+uint8_t Game_missilePlayerLaunch(void);
+uint8_t Game_missileEnemyLaunch(void);
 
 uint8_t Game_enemyGetNumEnemy(void);
 int Game_enemyGetRandomEnemy(void);

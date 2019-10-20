@@ -493,8 +493,9 @@ void Game_missileDraw(void)
 //////////////////////////////////////////
 //Get first missile from array with alive = 0,
 //set alive = 1, and x = player x, and y = player y
-void Game_missilePlayerLaunch(void)
+uint8_t Game_missilePlayerLaunch(void)
 {
+	uint8_t result = 0x00;
 	uint8_t i = 0;
 	uint8_t index = 0;
 	uint8_t isAvailable = 0x00;
@@ -517,22 +518,31 @@ void Game_missilePlayerLaunch(void)
 		mPlayerMissile[index].alive = 1;
 		mPlayerMissile[index].y = GAME_MISSILE_MAX_Y - 2;
 		mPlayerMissile[index].x = mPlayer.xPosition + GAME_MISSILE_OFFSET_X - FRAME_BUFFER_OFFSET_X;		
+		
+		result = 1;
 	}
+	
+	return result;
 }
 
 
 ///////////////////////////////////////////
 //Launch missile from a random enemy
-void Game_missileEnemyLaunch(void)
+//returns 1 if success, 0 if not
+uint8_t Game_missileEnemyLaunch(void)
 {
+	uint8_t result = 0;
 	uint8_t i = 0;
 	int index = 0x00;
 	uint8_t missileIndex = 0x00;
 	uint8_t isAvailable = 0x00;
 	
+	//get the index of a live random enemy
+	//TODO: fix this, it's returning the index of a non-live enemy
 	index = Game_enemyGetRandomEnemy();
 	
-	if (index >= 0)
+	//the bug is that it's returning the index of a non-live enemy
+	if ((index >= 0) && ((mEnemy[index].flag_VHL & 0x01) == 1))
 	{
 		//find the first available missile from enemy
 		//missile array and set it to true, x and y
@@ -554,8 +564,12 @@ void Game_missileEnemyLaunch(void)
 			mEnemyMissile[missileIndex].alive = 1;
 			mEnemyMissile[missileIndex].x = mEnemy[index].xPosition + GAME_ENEMY_OFFSET_X;
 			mEnemyMissile[missileIndex].y = mEnemy[index].yPosition + GAME_ENEMY_HEIGHT;
+			
+			result = 1;
 		}		
 	}
+	
+	return result;
 }
 
 
@@ -598,7 +612,7 @@ int Game_enemyGetRandomEnemy(void)
 		
 		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 		{
-			if (((mEnemy[i].flag_VHL & 0x01)) == 1)
+			if (mEnemy[i].flag_VHL & 0x01)
 			{
 				if (index == counter)
 					return counter;
