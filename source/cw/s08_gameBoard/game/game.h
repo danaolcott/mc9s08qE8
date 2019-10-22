@@ -63,7 +63,7 @@ typedef struct{
 }PlayerStruct;
 
 
-////////////////////////////////////////
+/////////////////////////////////////////////
 //Enemy Definition
 //flag_VH - bits containing the direction of
 //the enemy, V - vertical, high = down

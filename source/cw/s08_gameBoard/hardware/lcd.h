@@ -90,7 +90,7 @@ void LCD_drawImagePage(uint8_t x, uint8_t y, Image_t image);
 //functions that manipulate the framebuffer
 void LCD_putPixelRam(uint16_t x, uint16_t y, uint8_t color, uint8_t update);
 void LCD_drawImageRam(uint16_t xPosition, uint16_t yPosition, Image_t image, uint8_t trans, uint8_t update);
-
+void LCD_drawEnemyBitmap(uint16_t xPosition, uint16_t yPosition);
 
 #endif /* LCD_H_ */
 

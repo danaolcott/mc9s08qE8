@@ -23,21 +23,6 @@
 #include "rtc.h"
 
 
-///////////////////////////////////////
-//EEPROM_init()
-//Load memory values into RAM, increment
-//the cycle counter
-//void EEPROM_init(void)
-//{	
-//	EEPROM_cycleCount = 0x00;
-	
-	//read the high score and updated cycle count into RAM
-//	EEPROM_cycleCount = EEPROM_updateCycleCount();
-	
-
-//}
-
-
 //////////////////////////////////////////
 //EEPROM_writeByte.
 //Writes 2 bytes to eeprom: memory address, data
@@ -69,19 +54,15 @@ uint8_t EEPROM_readByte(uint8_t memoryAddress)
 //new value.  
 //clearFlag = if set, clear the cycle counter
 //if 0, increment the counter
-uint16_t EEPROM_updateCycleCount(uint8_t clearFlag)
+uint16_t EEPROM_updateCycleCount(void)
 {
 	uint16_t result = 0x00;
 	uint8_t high = 0x00;
 	uint8_t low = 0x00;
 
-	//flag not set, read it and increment
-	if (clearFlag == 0)
-	{
-		result = EEPROM_readCycleCount();
-		result += 1;
-	}
-
+	result = EEPROM_readCycleCount();
+	result += 1;
+	
 	//else, do nothing, and result = 0	
 	high = (uint8_t)((result >> 8) & 0xFF);
 	low = (uint8_t)(result & 0xFF);

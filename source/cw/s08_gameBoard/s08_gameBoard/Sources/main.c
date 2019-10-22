@@ -89,11 +89,6 @@ void main(void)
 	Game_init();				//initialize the game
 	Sound_init();
 	EnableInterrupts;			//enable interrupts
-
-	//check to reset memory - read both left and right buttons down
-	//comment this out if not wanting to ever reset the counter
-	//if ((!(PTAD & BIT0)) && (!(PTBD & BIT0)))
-	//	cycleCounter = EEPROM_updateCycleCount(1);				//load stored data - interrupts enabled
 	
 	while (1)
 	{	
@@ -151,7 +146,7 @@ void main(void)
 			
 			//update the cycle counter - pass 0 as the
 			//clear flag
-			cycleCounter = EEPROM_updateCycleCount(0);
+			cycleCounter = EEPROM_updateCycleCount();
 
 			while (Game_flagGetGameOverFlag() == 1)
 			{

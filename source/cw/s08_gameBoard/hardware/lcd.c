@@ -590,3 +590,61 @@ void LCD_drawImageRam(uint16_t xPosition, uint16_t yPosition, Image_t image, uin
 
 
 
+
+//////////////////////////////////////////////////////////
+//Draw enemy bitmap in RAM
+//Transparency assumed 0 (ie, don't draw 0 pixels)
+//and update assumed to be 0 (ie, no update to the LCD)
+//Attempt to reduce code size
+void LCD_drawEnemyBitmap(uint16_t xPosition, uint16_t yPosition)
+{
+	uint8_t bitValue = 0;
+	uint8_t p = 0;
+	uint16_t i = 0;
+	uint16_t j = 0;
+	uint16_t counter = 0x00;
+	uint8_t data = 0x00;
+	uint8_t sizeX = 0x00;
+	uint8_t sizeY = 0x00;    
+	uint16_t x = xPosition;
+	uint16_t y = yPosition;
+	 
+	//set the pointer
+	uint8_t *far ptr = bmenemy1Bmp.pImageData;
+	sizeX = bmenemy1Bmp.xSize;
+	sizeY = bmenemy1Bmp.ySize;
+	         
+    for (i = 0 ; i < sizeY ; i++)
+    {
+		x = xPosition;        //reset the x position
+		
+		//1bpp - 8 pixels per element
+		for (j = 0 ; j < (sizeX / 8) ; j++)
+		{   
+			data = ptr[counter];
+			
+			//work counter 8 times
+			p = 8;                  //reset p
+			while (p > 0)
+			{                
+				bitValue = (data >> (p-1)) & 0x01;
+				
+				if (bitValue == 1)
+				{
+					LCD_putPixelRam(x, y, 1, 0);
+				}
+				
+				x++;            //increment the x
+				p--;
+			}
+			
+			counter++;
+		}
+		
+		y++;        //increment the row
+	}
+}
+
+
+
+

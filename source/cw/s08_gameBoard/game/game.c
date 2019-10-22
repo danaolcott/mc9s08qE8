@@ -424,8 +424,8 @@ void Game_enemyDraw(void)
 	for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 	{
 		if (mEnemy[i].alive == 1)
-		{			
-			LCD_drawImageRam(mEnemy[i].xPosition, mEnemy[i].yPosition, BITMAP_ENEMY, 0, 0);
+		{	
+			LCD_drawEnemyBitmap(mEnemy[i].xPosition, mEnemy[i].yPosition);
 		}
 	}
 }
@@ -514,7 +514,6 @@ uint8_t Game_missileEnemyLaunch(void)
 	uint8_t isAvailable = 0x00;
 	
 	//get the index of a live random enemy
-	//TODO: Big Fix - it's returning the index of a non-live enemy
 	index = Game_enemyGetRandomEnemy();
 	
 	if ((index >= 0) && (mEnemy[index].alive == 1))
@@ -569,69 +568,36 @@ uint8_t Game_enemyGetNumEnemy(void)
 int Game_enemyGetRandomEnemy(void)
 {
 	uint8_t i = 0;
-	//uint8_t index = 0;
-	uint8_t counter = 0x00;
+	uint8_t index = 0;
+	static uint8_t enemyCounter = 0x00;
 	uint8_t numEnemy = Game_enemyGetNumEnemy();
-	static uint8_t index = 0x00;
-	
-	if (numEnemy > 0)
-	{
-		//traverse the enemy array
-		if ((index < numEnemy) && (index < (GAME_ENEMY_NUM_ENEMY - 1)))
-			index++;
-		else
-			index = 0;
-		
-		//with the new index, find the alive one
-		//with the equivalent position in the array
-		
-		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
-		{
-			if (mEnemy[i].alive == 1)
-			{
-				if (index == counter)
-				{
-					return counter;
-				}
-				
-				counter++;
-			}
-		}
-	}
-	
-	return -1;
-	
 
-	/*
 	if (numEnemy > 0)
 	{
-		//get a random index value, zero-based
-		//of the enemy to shoot the missile
+		//get a random index value, 0 to numEnemy-1
+		//add 1 to it and compare with a 1-based counter
+		//Might be the zero-zero comparison causing the bug
+		//or something being optimised out
 		index = (uint8_t)(rand() % numEnemy);
+		index++;
 		
-		//count "index number of values" down the array
-		//increment on only alive enemy
-
 		//go to the random index, skipping over dead enemy
+		enemyCounter = 1;
 		for (i = 0 ; i < GAME_ENEMY_NUM_ENEMY ; i++)
 		{
 			if (mEnemy[i].alive == 1)
 			{
-				if (index == counter)
+				if (index == enemyCounter)
 				{
-					return counter;					
+					return (enemyCounter - 1);
 				}
 				
-				counter++;
+				enemyCounter++;
 			}
 		}
 	}
 	
 	return -1;		//no enemy remaining
-	
-	*/
-	
-	
 }
 
 
