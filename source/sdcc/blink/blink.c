@@ -14,32 +14,10 @@ sdcc -mhc08 --stack-loc 0x00FF --code-loc 0xE000 blink.c
 */
 
 
-//data at 0x00 volatile char PTAD;
-//data at 0x01 volatile char PTADD;
 
 #include <stdint.h>
 #include <stddef.h>
-
-#define BIT0        (1u << 0)
-#define BIT1        (1u << 1)
-#define BIT2        (1u << 2)
-#define BIT3        (1u << 3)
-#define BIT4        (1u << 4)
-#define BIT5        (1u << 5)
-#define BIT6        (1u << 6)
-#define BIT7        (1u << 7)
-
-
-#define PTAD        (*((volatile uint8_t*)(0x00)))
-#define PTADD       (*((volatile uint8_t*)(0x01)))
-
-//Need something with the watchdog timer
-
-
-
-//data 0x00 volatile char PTAD;
-//data 0x01 volatile char PTADD;
-//data at 0x1F volatile char CONFIG;
+#include "register.h"
 
 
 void delay(uint16_t value);
@@ -48,7 +26,7 @@ void GPIO_init(void);
 
 int main()
 {
-//    CONFIG = 0x01;          //initial config - this can only be written to one temp
+    CONFIG = 0x01;          //initial config - this can only be written to one temp
 
     GPIO_init();
 

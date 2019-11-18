@@ -18,11 +18,7 @@ OBJCOPY  = sdobjcopy
 # Compile Flags
 CFLAGS   = -m$(ARCH) -p$(MCU) --std-sdcc99
 CFLAGS  += -D$(DEVICE)
-
-# Stack and Code Space
-# CFLAGS  += --stack-auto
-CFLAGS  += --stack-loc 0x00FF
-CFLAGS  += --code-loc 0xE000
+CFLAGS  += --funsigned-char
 
 # Include Paths
 I_PATH1 = .
@@ -31,7 +27,19 @@ I_PATH3 = /usr/share/sdcc/lib/hc08
 INCLUDE = -I$(I_PATH1) -I$(I_PATH2) -I$(I_PATH3) 
 
 # Linker Flags
-LDFLAGS  = -m$(ARCH) -l$(ARCH) --out-fmt-ihx
+LIB_PATH = /usr/share/sdcc/lib/hc08
+LDFLAGS  = -m$(ARCH)  --lib-path$(LIB_PATH) -lhc08.lib
+
+LDFLAGS += --out-fmt-ihx
+LDFLAGS += --iram-size 0x1FF
+LDFLAGS += --stack-loc 0xFF
+LDFLAGS += --stack-auto
+LDFLAGS += --code-loc 0xE000
+LDFLAGS += --data-loc 0x00
+LDFLAGS += --oldralloc
+LDFLAGS += --xram-loc 0x60
+LDFLAGS += --xram-size 0x1FF
+
 
 all: $(TARGET) size
 
