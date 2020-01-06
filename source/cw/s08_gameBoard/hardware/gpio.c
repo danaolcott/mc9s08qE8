@@ -29,7 +29,7 @@ void GPIO_init(void)
 
 	PTAD &=~ BIT6;		//off
 	PTAD &=~ BIT7;		//off
-
+	
 	//user buttons
 	PTADD &=~ BIT0;		//User Button
 	PTBDD &=~ BIT0;		//User Button

@@ -108,9 +108,11 @@ void LCD_init(void)
 	LCD_writeCommand(0xA6);		//Display inverse off
 	LCD_writeCommand(0xA2);		//Set bias 1/9 (Duty 1/65)
 	LCD_writeCommand(0x2F);		//Booster, Regulator and Follower on
-	LCD_writeCommand(0x27);		//Set Contrast
-	LCD_writeCommand(0x81);		//Set Contrast
-	LCD_writeCommand(0x10);		//Set Contrast
+	LCD_writeCommand(0x27);		//Set Contrast - internal resistor ratio- max, base = 0x20
+	LCD_writeCommand(0x81);		//Set Contrast - contrast, cmd 1
+//	LCD_writeCommand(0x10);		//Set Contrast - value, 6 bits
+	LCD_writeCommand(0x0E);		//Set Contrast - value, 6 bits
+
 	
 	LCD_writeCommand(0xFA);		//Set temperature compensation
 	LCD_writeCommand(0x90);		//Set temperature compensation

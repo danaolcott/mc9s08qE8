@@ -92,6 +92,8 @@ void main(void)
 	
 	while (1)
 	{	
+		
+
 		//check for player move - move left
 		if (!(PTAD & BIT0))
 			Game_playerMoveLeft();
@@ -207,7 +209,6 @@ void main(void)
 		GPIO_toggleGreen();	//170ms with RTC at 1000hz, 155ms at 100hz
 		RTC_delay(10);
 	}
-	
 }
 
 
